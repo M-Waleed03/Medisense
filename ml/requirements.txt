@@ -1,0 +1,12 @@
+fastapi
+uvicorn
+python-multipart
+scikit-learn
+numpy
+pytesseract
+pillow
+python-dotenv
+opencv-python
+pypdfium2
+joblib
+firebase-admin

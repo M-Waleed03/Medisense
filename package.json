@@ -1,0 +1,21 @@
+{
+  "name": "medisense-platform",
+  "private": true,
+  "version": "1.0.0",
+  "description": "MEDISENSE full-stack AI healthcare assistant platform.",
+  "scripts": {
+    "dev": "concurrently \"npm run dev --workspace backend\" \"npm run dev --workspace web\"",
+    "dev:all": "concurrently \"npm run ml\" \"npm run dev --workspace backend\" \"npm run dev --workspace web\"",
+    "build": "npm run build --workspace backend && npm run build --workspace web",
+    "lint": "npm run lint --workspace web",
+    "typecheck": "npm run typecheck --workspace backend && npm run typecheck --workspace web",
+    "ml": "cd ml && python app.py"
+  },
+  "workspaces": [
+    "web",
+    "backend"
+  ],
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}

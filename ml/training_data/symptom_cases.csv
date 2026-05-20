@@ -1,0 +1,26 @@
+symptoms,label
+"fever headache muscle pain rash nausea low platelets",Dengue
+"high fever severe headache eye pain joint pain rash low platelets low wbc",Dengue
+"fever bleeding gums vomiting abdominal pain fatigue low platelets",Dengue
+"fever rash body ache low platelets mosquito exposure",Dengue
+"fever vomiting severe abdominal pain low platelets warning signs",Dengue
+"fever chills sweating headache nausea periodic fever",Malaria
+"periodic fever chills sweating body ache weakness mosquito exposure",Malaria
+"fever shivering anemia headache vomiting travel history",Malaria
+"high fever chills sweats fatigue body pain",Malaria
+"fever chills headache nausea diarrhea travel history",Malaria
+"fever weakness stomach pain headache loss of appetite",Typhoid
+"persistent fever abdominal pain constipation coated tongue weakness",Typhoid
+"fever diarrhea stomach pain loss of appetite fatigue",Typhoid
+"step ladder fever abdominal pain headache appetite loss",Typhoid
+"persistent fever weakness abdominal discomfort diarrhea",Typhoid
+"fever body ache cough runny nose fatigue",Viral Fever
+"mild fever sore throat body ache fatigue headache",Viral Fever
+"fever body pain weakness headache no warning signs",Viral Fever
+"low grade fever tiredness sore throat mild cough",Viral Fever
+"fever headache body ache appetite loss",Viral Fever
+"fever cough sneezing runny nose watery eyes",Flu
+"sudden fever dry cough sore throat body ache fatigue",Flu
+"high fever cough chills sore throat weakness",Flu
+"fever cough headache muscle aches respiratory symptoms",Flu
+"fever sore throat cough fatigue exposure",Flu

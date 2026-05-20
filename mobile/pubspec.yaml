@@ -1,0 +1,28 @@
+name: medisense_mobile
+description: MEDISENSE Flutter mobile app for AI healthcare guidance.
+publish_to: "none"
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.5.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+  flutter_riverpod: ^2.6.1
+  firebase_core: ^3.10.0
+  firebase_auth: ^5.4.0
+  cloud_firestore: ^5.6.1
+  google_sign_in: ^6.2.2
+  http: ^1.2.2
+  file_picker: ^8.1.7
+  fl_chart: ^0.70.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true
