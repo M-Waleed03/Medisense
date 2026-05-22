@@ -11,14 +11,21 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:http/http.dart' as http;
 
-const firebaseApiKey = String.fromEnvironment('FIREBASE_API_KEY', defaultValue: 'AIzaSyCTHVDQFmyRHO-eMr2K0eaYj44G1acpG-o');
-const firebaseAuthDomain = String.fromEnvironment('FIREBASE_AUTH_DOMAIN', defaultValue: 'medisense-593f1.firebaseapp.com');
-const firebaseProjectId = String.fromEnvironment('FIREBASE_PROJECT_ID', defaultValue: 'medisense-593f1');
-const firebaseStorageBucket = String.fromEnvironment('FIREBASE_STORAGE_BUCKET', defaultValue: 'medisense-593f1.firebasestorage.app');
-const firebaseMessagingSenderId = String.fromEnvironment('FIREBASE_MESSAGING_SENDER_ID', defaultValue: '275790099694');
-const firebaseAppId = String.fromEnvironment('FIREBASE_APP_ID', defaultValue: '1:275790099694:web:0b54298b76bbcff0f66fff');
+const firebaseApiKey = String.fromEnvironment('FIREBASE_API_KEY',
+    defaultValue: 'AIzaSyADvUziMGNd7hKAFG-WV_f0PuZP6RgfAOM');
+const firebaseAuthDomain = String.fromEnvironment('FIREBASE_AUTH_DOMAIN',
+    defaultValue: 'medisense-593f1.firebaseapp.com');
+const firebaseProjectId = String.fromEnvironment('FIREBASE_PROJECT_ID',
+    defaultValue: 'medisense-593f1');
+const firebaseStorageBucket = String.fromEnvironment('FIREBASE_STORAGE_BUCKET',
+    defaultValue: 'medisense-593f1.firebasestorage.app');
+const firebaseMessagingSenderId = String.fromEnvironment(
+    'FIREBASE_MESSAGING_SENDER_ID',
+    defaultValue: '275790099694');
+const firebaseAppId = String.fromEnvironment('FIREBASE_APP_ID',
+    defaultValue: '1:275790099694:web:0b54298b76bbcff0f66fff');
 const configuredAiApiUrl = String.fromEnvironment('AI_API_URL');
-const webApiUrl = String.fromEnvironment('WEB_API_URL', defaultValue: 'http://localhost:3000');
+const configuredWebApiUrl = String.fromEnvironment('WEB_API_URL');
 
 bool firebaseReady = false;
 String? startupError;
@@ -26,20 +33,16 @@ String? startupError;
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   try {
-    if (firebaseApiKey.isNotEmpty) {
-      await Firebase.initializeApp(
-        options: const FirebaseOptions(
-          apiKey: firebaseApiKey,
-          authDomain: firebaseAuthDomain,
-          projectId: firebaseProjectId,
-          storageBucket: firebaseStorageBucket,
-          messagingSenderId: firebaseMessagingSenderId,
-          appId: firebaseAppId,
-        ),
-      );
-    } else {
-      await Firebase.initializeApp();
-    }
+    await Firebase.initializeApp(
+      options: const FirebaseOptions(
+        apiKey: firebaseApiKey,
+        authDomain: firebaseAuthDomain,
+        projectId: firebaseProjectId,
+        storageBucket: firebaseStorageBucket,
+        messagingSenderId: firebaseMessagingSenderId,
+        appId: firebaseAppId,
+      ),
+    );
     firebaseReady = true;
   } catch (error) {
     startupError = error.toString();
@@ -50,8 +53,19 @@ Future<void> main() async {
 String apiBaseUrl() {
   if (configuredAiApiUrl.isNotEmpty) return configuredAiApiUrl;
   if (kIsWeb) return 'http://127.0.0.1:8000';
-  if (defaultTargetPlatform == TargetPlatform.android) return 'http://10.0.2.2:8000';
+  if (defaultTargetPlatform == TargetPlatform.android) {
+    return 'http://10.0.2.2:8000';
+  }
   return 'http://127.0.0.1:8000';
+}
+
+String webBaseUrl() {
+  if (configuredWebApiUrl.isNotEmpty) return configuredWebApiUrl;
+  if (kIsWeb) return 'http://127.0.0.1:3000';
+  if (defaultTargetPlatform == TargetPlatform.android) {
+    return 'http://10.0.2.2:3000';
+  }
+  return 'http://127.0.0.1:3000';
 }
 
 class MediSenseApp extends StatelessWidget {
@@ -64,10 +78,59 @@ class MediSenseApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF2563EB)),
-        scaffoldBackgroundColor: const Color(0xFFF8FAFC),
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: MediColors.primary,
+          primary: MediColors.primary,
+          secondary: MediColors.secondary,
+          surface: Colors.white,
+        ),
+        scaffoldBackgroundColor: MediColors.background,
+        inputDecorationTheme: InputDecorationTheme(
+          filled: true,
+          fillColor: Colors.white,
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+          enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+        ),
       ),
       home: const AuthGate(),
+    );
+  }
+}
+
+class MediColors {
+  static const primary = Color(0xFF2563EB);
+  static const secondary = Color(0xFF14B8A6);
+  static const accent = Color(0xFF8B5CF6);
+  static const background = Color(0xFFF8FAFC);
+  static const text = Color(0xFF0F172A);
+}
+
+class AuthGate extends StatelessWidget {
+  const AuthGate({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    if (!firebaseReady) {
+      return SetupIssueScreen(
+          message:
+              startupError ?? 'Firebase is not configured for this platform.');
+    }
+    return StreamBuilder<User?>(
+      stream: FirebaseAuth.instance.authStateChanges(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const SplashScreen();
+        }
+        if (snapshot.hasError) {
+          return SetupIssueScreen(message: snapshot.error.toString());
+        }
+        final user = snapshot.data;
+        if (user == null) return const OnboardingAuthShell();
+        ensureProfile(user).catchError((_) {});
+        return const MobileShell();
+      },
     );
   }
 }
@@ -78,14 +141,19 @@ class SplashScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const Scaffold(
-      body: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            CircularProgressIndicator(),
-            SizedBox(height: 16),
-            Text('Starting MEDISENSE...', style: TextStyle(fontWeight: FontWeight.w800)),
-          ],
+      body: PremiumBackground(
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              DoctorMark(size: 72),
+              SizedBox(height: 18),
+              Text('Starting MEDISENSE',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900)),
+              SizedBox(height: 14),
+              CircularProgressIndicator(),
+            ],
+          ),
         ),
       ),
     );
@@ -100,54 +168,151 @@ class SetupIssueScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.all(24),
-          children: [
-            const SizedBox(height: 56),
-            const Icon(Icons.medical_services_outlined, size: 54, color: Color(0xFF2563EB)),
-            const SizedBox(height: 18),
-            const Text('MEDISENSE setup needs attention', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900)),
-            const SizedBox(height: 12),
-            const Text('The app could not finish Firebase startup, so it is showing this fallback instead of a blank screen.'),
-            const SizedBox(height: 16),
-            GlassCard(child: Text(message)),
-          ],
+        child: PremiumBackground(
+          child: ListView(
+            padding: const EdgeInsets.all(24),
+            children: [
+              const SizedBox(height: 56),
+              const DoctorMark(size: 64),
+              const SizedBox(height: 18),
+              const Text('MEDISENSE setup needs attention',
+                  style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900)),
+              const SizedBox(height: 12),
+              const Text(
+                  'Firebase could not start, so MEDISENSE is showing this setup screen instead of a blank app.'),
+              const SizedBox(height: 16),
+              GlassCard(child: Text(message)),
+            ],
+          ),
         ),
       ),
     );
   }
 }
 
-class AuthGate extends StatelessWidget {
-  const AuthGate({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    if (!firebaseReady) return SetupIssueScreen(message: startupError ?? 'Firebase is not configured for this platform.');
-    return StreamBuilder<User?>(
-      stream: FirebaseAuth.instance.authStateChanges(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) return const SplashScreen();
-        if (snapshot.hasError) return SetupIssueScreen(message: snapshot.error.toString());
-        final user = snapshot.data;
-        if (user == null) return const AuthScreen();
-        ensureProfile(user).catchError((_) {});
-        return const MobileShell();
-      },
-    );
-  }
-}
-
 Future<void> ensureProfile(User user) async {
-  await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+  final ref = FirebaseFirestore.instance.collection('users').doc(user.uid);
+  final snapshot = await ref.get();
+  final base = {
     'userId': user.uid,
-    'fullName': user.displayName ?? user.email?.split('@').first ?? 'MEDISENSE user',
+    'fullName':
+        user.displayName ?? user.email?.split('@').first ?? 'MEDISENSE user',
     'email': user.email ?? '',
     'profileImage': user.photoURL ?? '',
     'lastSeenAt': FieldValue.serverTimestamp(),
     'updatedAt': FieldValue.serverTimestamp(),
-    'createdAt': FieldValue.serverTimestamp(),
-  }, SetOptions(merge: true));
+  };
+  await ref.set(
+      snapshot.exists
+          ? base
+          : {...base, 'createdAt': FieldValue.serverTimestamp()},
+      SetOptions(merge: true));
+}
+
+class OnboardingAuthShell extends StatefulWidget {
+  const OnboardingAuthShell({super.key});
+
+  @override
+  State<OnboardingAuthShell> createState() => _OnboardingAuthShellState();
+}
+
+class _OnboardingAuthShellState extends State<OnboardingAuthShell> {
+  int page = 0;
+  bool showAuth = false;
+
+  static const slides = [
+    (
+      'AI doctor workspace',
+      'Analyze symptoms, reports, and chat guidance in one secure MEDISENSE account.',
+      Icons.smart_toy_outlined
+    ),
+    (
+      'Shared health history',
+      'Web and mobile use the same Firebase Auth and Firestore collections.',
+      Icons.sync_outlined
+    ),
+    (
+      'Safe medical fallback',
+      'If external AI is unavailable, local medical rules still answer core health questions.',
+      Icons.health_and_safety_outlined
+    ),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    if (showAuth) return const AuthScreen();
+    final slide = slides[page];
+    return Scaffold(
+      body: SafeArea(
+        child: PremiumBackground(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const DoctorMark(size: 56),
+                const Spacer(),
+                GlassCard(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(slide.$3, color: MediColors.primary, size: 38),
+                      const SizedBox(height: 18),
+                      Text(slide.$1,
+                          style: const TextStyle(
+                              fontSize: 30,
+                              fontWeight: FontWeight.w900,
+                              color: MediColors.text)),
+                      const SizedBox(height: 12),
+                      Text(slide.$2,
+                          style: const TextStyle(
+                              height: 1.45, color: Color(0xFF475569))),
+                    ],
+                  ),
+                ),
+                Row(
+                  children: List.generate(
+                      slides.length,
+                      (index) => AnimatedContainer(
+                            duration: const Duration(milliseconds: 220),
+                            margin: const EdgeInsets.only(right: 8),
+                            height: 8,
+                            width: page == index ? 28 : 8,
+                            decoration: BoxDecoration(
+                                color: page == index
+                                    ? MediColors.primary
+                                    : const Color(0xFFCBD5E1),
+                                borderRadius: BorderRadius.circular(10)),
+                          )),
+                ),
+                const Spacer(),
+                Row(
+                  children: [
+                    TextButton(
+                        onPressed: () => setState(() => showAuth = true),
+                        child: const Text('Skip')),
+                    const Spacer(),
+                    FilledButton.icon(
+                      onPressed: () {
+                        if (page == slides.length - 1) {
+                          setState(() => showAuth = true);
+                        } else {
+                          setState(() => page += 1);
+                        }
+                      },
+                      icon: const Icon(Icons.arrow_forward),
+                      label: Text(
+                          page == slides.length - 1 ? 'Get started' : 'Next'),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class AuthScreen extends StatefulWidget {
@@ -165,6 +330,14 @@ class _AuthScreenState extends State<AuthScreen> {
   bool loading = false;
   String message = '';
 
+  @override
+  void dispose() {
+    email.dispose();
+    password.dispose();
+    name.dispose();
+    super.dispose();
+  }
+
   Future<void> submit() async {
     setState(() {
       loading = true;
@@ -173,67 +346,157 @@ class _AuthScreenState extends State<AuthScreen> {
     try {
       UserCredential credential;
       if (signup) {
-        credential = await FirebaseAuth.instance.createUserWithEmailAndPassword(email: email.text.trim(), password: password.text);
-        await credential.user?.updateDisplayName(name.text.trim());
+        credential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
+            email: email.text.trim(), password: password.text);
+        if (name.text.trim().isNotEmpty) {
+          await credential.user?.updateDisplayName(name.text.trim());
+        }
       } else {
-        credential = await FirebaseAuth.instance.signInWithEmailAndPassword(email: email.text.trim(), password: password.text);
+        credential = await FirebaseAuth.instance.signInWithEmailAndPassword(
+            email: email.text.trim(), password: password.text);
       }
       if (credential.user != null) await ensureProfile(credential.user!);
     } catch (error) {
-      setState(() => message = error.toString());
+      setState(() => message = friendlyAuthError(error));
     } finally {
-      setState(() => loading = false);
+      if (mounted) setState(() => loading = false);
     }
   }
 
   Future<void> googleLogin() async {
-    setState(() => loading = true);
+    setState(() {
+      loading = true;
+      message = '';
+    });
     try {
-      final googleUser = await GoogleSignIn().signIn();
-      final googleAuth = await googleUser?.authentication;
-      if (googleAuth == null) return;
-      final credential = GoogleAuthProvider.credential(accessToken: googleAuth.accessToken, idToken: googleAuth.idToken);
-      final result = await FirebaseAuth.instance.signInWithCredential(credential);
+      UserCredential result;
+      if (kIsWeb) {
+        result =
+            await FirebaseAuth.instance.signInWithPopup(GoogleAuthProvider());
+      } else {
+        final googleUser = await GoogleSignIn().signIn();
+        final googleAuth = await googleUser?.authentication;
+        if (googleAuth == null) {
+          setState(() => message = 'Google sign-in was cancelled.');
+          return;
+        }
+        final credential = GoogleAuthProvider.credential(
+            accessToken: googleAuth.accessToken, idToken: googleAuth.idToken);
+        result = await FirebaseAuth.instance.signInWithCredential(credential);
+      }
       if (result.user != null) await ensureProfile(result.user!);
     } catch (error) {
-      setState(() => message = error.toString());
+      setState(() => message = friendlyAuthError(error));
     } finally {
-      setState(() => loading = false);
+      if (mounted) setState(() => loading = false);
     }
   }
 
   Future<void> resetPassword() async {
     if (email.text.trim().isEmpty) {
-      setState(() => message = 'Enter your email first.');
+      setState(
+          () => message = 'Enter your email first, then request a reset link.');
       return;
     }
-    await FirebaseAuth.instance.sendPasswordResetEmail(email: email.text.trim());
-    setState(() => message = 'Password reset email sent.');
+    try {
+      await FirebaseAuth.instance
+          .sendPasswordResetEmail(email: email.text.trim());
+      setState(() => message = 'Password reset email sent.');
+    } catch (error) {
+      setState(() => message = friendlyAuthError(error));
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: ListView(
-        padding: const EdgeInsets.all(24),
-        children: [
-          const SizedBox(height: 72),
-          const Text('MEDISENSE', style: TextStyle(fontSize: 40, fontWeight: FontWeight.w900)),
-          const SizedBox(height: 8),
-          const Text('Secure symptom checks, report analysis, chatbot guidance, and profile sync.'),
-          const SizedBox(height: 28),
-          if (signup) TextField(controller: name, decoration: const InputDecoration(labelText: 'Full name', border: OutlineInputBorder())),
-          if (signup) const SizedBox(height: 12),
-          TextField(controller: email, keyboardType: TextInputType.emailAddress, decoration: const InputDecoration(labelText: 'Email', border: OutlineInputBorder())),
-          const SizedBox(height: 12),
-          TextField(controller: password, obscureText: true, decoration: const InputDecoration(labelText: 'Password', border: OutlineInputBorder())),
-          const SizedBox(height: 16),
-          FilledButton.icon(onPressed: loading ? null : submit, icon: loading ? const SizedBox.square(dimension: 16, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.login), label: Text(signup ? 'Create account' : 'Sign in')),
-          OutlinedButton.icon(onPressed: loading ? null : googleLogin, icon: const Icon(Icons.g_mobiledata), label: const Text('Continue with Google')),
-          TextButton(onPressed: () => setState(() => signup = !signup), child: Text(signup ? 'Already have an account? Sign in' : 'Create an account')),
-          TextButton(onPressed: resetPassword, child: const Text('Forgot password?')),
-          if (message.isNotEmpty) GlassCard(child: Text(message)),
-        ],
+      body: SafeArea(
+        child: PremiumBackground(
+          child: ListView(
+            padding: const EdgeInsets.all(24),
+            children: [
+              const SizedBox(height: 28),
+              const DoctorMark(size: 58),
+              const SizedBox(height: 24),
+              Text(
+                  signup
+                      ? 'Create your MEDISENSE account'
+                      : 'Welcome back to MEDISENSE',
+                  style: const TextStyle(
+                      fontSize: 32,
+                      fontWeight: FontWeight.w900,
+                      color: MediColors.text)),
+              const SizedBox(height: 8),
+              const Text('Use the same Firebase credentials on web and mobile.',
+                  style: TextStyle(color: Color(0xFF475569))),
+              const SizedBox(height: 24),
+              GlassCard(
+                child: Column(
+                  children: [
+                    if (signup)
+                      TextField(
+                          controller: name,
+                          textInputAction: TextInputAction.next,
+                          decoration: const InputDecoration(
+                              labelText: 'Full name',
+                              prefixIcon: Icon(Icons.person_outline))),
+                    if (signup) const SizedBox(height: 12),
+                    TextField(
+                        controller: email,
+                        keyboardType: TextInputType.emailAddress,
+                        textInputAction: TextInputAction.next,
+                        decoration: const InputDecoration(
+                            labelText: 'Email',
+                            prefixIcon: Icon(Icons.email_outlined))),
+                    const SizedBox(height: 12),
+                    TextField(
+                        controller: password,
+                        obscureText: true,
+                        decoration: const InputDecoration(
+                            labelText: 'Password',
+                            prefixIcon: Icon(Icons.lock_outline))),
+                    const SizedBox(height: 16),
+                    SizedBox(
+                      width: double.infinity,
+                      child: FilledButton.icon(
+                        onPressed: loading ? null : submit,
+                        icon: loading
+                            ? const SizedBox.square(
+                                dimension: 16,
+                                child: CircularProgressIndicator(
+                                    strokeWidth: 2, color: Colors.white))
+                            : const Icon(Icons.login),
+                        label: Text(signup ? 'Create account' : 'Sign in'),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                          onPressed: loading ? null : googleLogin,
+                          icon: const Icon(Icons.g_mobiledata),
+                          label: const Text('Continue with Google')),
+                    ),
+                    TextButton(
+                        onPressed: loading
+                            ? null
+                            : () => setState(() => signup = !signup),
+                        child: Text(signup
+                            ? 'Already have an account? Sign in'
+                            : 'Create an account')),
+                    TextButton(
+                        onPressed: loading ? null : resetPassword,
+                        child: const Text('Forgot password?')),
+                  ],
+                ),
+              ),
+              if (message.isNotEmpty)
+                GlassCard(
+                    child: Text(message,
+                        style: const TextStyle(fontWeight: FontWeight.w700))),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -248,49 +511,75 @@ class MobileShell extends StatefulWidget {
 
 class _MobileShellState extends State<MobileShell> {
   int index = 0;
-  final pages = const [DashboardScreen(), SymptomScreen(), ReportsScreen(), ChatScreen(), ProfileScreen(), SettingsScreen()];
+  final pages = const [
+    DashboardScreen(),
+    SymptomScreen(),
+    ReportsScreen(),
+    ChatScreen(),
+    HistoryScreen(),
+    ProfileScreen(),
+    SettingsScreen()
+  ];
+  final labels = const [
+    'Dashboard',
+    'Symptoms',
+    'Reports',
+    'Chatbot',
+    'History',
+    'Profile',
+    'Settings'
+  ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('MEDISENSE', style: TextStyle(fontWeight: FontWeight.w900)),
-        actions: [IconButton(onPressed: () => FirebaseAuth.instance.signOut(), icon: const Icon(Icons.logout))],
-      ),
-      body: pages[index],
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: index,
-        onDestinationSelected: (value) => setState(() => index = value),
-        destinations: const [
-          NavigationDestination(icon: Icon(Icons.dashboard_outlined), selectedIcon: Icon(Icons.dashboard), label: 'Home'),
-          NavigationDestination(icon: Icon(Icons.monitor_heart_outlined), selectedIcon: Icon(Icons.monitor_heart), label: 'Symptoms'),
-          NavigationDestination(icon: Icon(Icons.document_scanner_outlined), selectedIcon: Icon(Icons.document_scanner), label: 'Reports'),
-          NavigationDestination(icon: Icon(Icons.smart_toy_outlined), selectedIcon: Icon(Icons.smart_toy), label: 'Chat'),
-          NavigationDestination(icon: Icon(Icons.person_outline), selectedIcon: Icon(Icons.person), label: 'Profile'),
-          NavigationDestination(icon: Icon(Icons.settings_outlined), selectedIcon: Icon(Icons.settings), label: 'Settings'),
+        title: Text(labels[index],
+            style: const TextStyle(fontWeight: FontWeight.w900)),
+        backgroundColor: Colors.white.withValues(alpha: 0.78),
+        actions: [
+          IconButton(
+              onPressed: () => FirebaseAuth.instance.signOut(),
+              icon: const Icon(Icons.logout),
+              tooltip: 'Logout'),
         ],
       ),
-    );
-  }
-}
-
-class GlassCard extends StatelessWidget {
-  const GlassCard({required this.child, super.key});
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      margin: const EdgeInsets.only(bottom: 14),
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: const Color.fromRGBO(255, 255, 255, 0.92),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white),
-        boxShadow: [const BoxShadow(color: Color.fromRGBO(96, 125, 139, 0.09), blurRadius: 30, offset: Offset(0, 16))],
+      body: PremiumBackground(child: pages[index]),
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: index,
+        labelBehavior: NavigationDestinationLabelBehavior.onlyShowSelected,
+        onDestinationSelected: (value) => setState(() => index = value),
+        destinations: const [
+          NavigationDestination(
+              icon: Icon(Icons.dashboard_outlined),
+              selectedIcon: Icon(Icons.dashboard),
+              label: 'Home'),
+          NavigationDestination(
+              icon: Icon(Icons.monitor_heart_outlined),
+              selectedIcon: Icon(Icons.monitor_heart),
+              label: 'Symptoms'),
+          NavigationDestination(
+              icon: Icon(Icons.document_scanner_outlined),
+              selectedIcon: Icon(Icons.document_scanner),
+              label: 'Reports'),
+          NavigationDestination(
+              icon: Icon(Icons.smart_toy_outlined),
+              selectedIcon: Icon(Icons.smart_toy),
+              label: 'Chat'),
+          NavigationDestination(
+              icon: Icon(Icons.history_outlined),
+              selectedIcon: Icon(Icons.history),
+              label: 'History'),
+          NavigationDestination(
+              icon: Icon(Icons.person_outline),
+              selectedIcon: Icon(Icons.person),
+              label: 'Profile'),
+          NavigationDestination(
+              icon: Icon(Icons.settings_outlined),
+              selectedIcon: Icon(Icons.settings),
+              label: 'Settings'),
+        ],
       ),
-      child: child,
     );
   }
 }
@@ -301,45 +590,159 @@ class DashboardScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final userId = FirebaseAuth.instance.currentUser!.uid;
-    return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-      stream: FirebaseFirestore.instance.collection('medical_reports').where('userId', isEqualTo: userId).snapshots(),
-      builder: (context, reportSnapshot) {
+    return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+      stream: FirebaseFirestore.instance
+          .collection('users')
+          .doc(userId)
+          .snapshots(),
+      builder: (context, profileSnapshot) {
+        final profile = profileSnapshot.data?.data() ?? {};
         return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-          stream: FirebaseFirestore.instance.collection('symptom_checks').where('userId', isEqualTo: userId).snapshots(),
-          builder: (context, symptomSnapshot) {
-            final reports = [...?reportSnapshot.data?.docs]..sort((a, b) => readDate(b).compareTo(readDate(a)));
-            final symptoms = [...?symptomSnapshot.data?.docs]..sort((a, b) => readDate(b).compareTo(readDate(a)));
-            final spots = reports.take(8).toList().asMap().entries.map((entry) {
-              final value = (entry.value.data()['platelets'] as num?)?.toDouble() ?? 0;
-              return FlSpot(entry.key.toDouble(), value / 1000);
-            }).toList();
-            return ListView(
-              padding: const EdgeInsets.all(16),
-              children: [
-                const Text('Health dashboard', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900)),
-                const SizedBox(height: 12),
-                GlassCard(child: Text(symptoms.isEmpty ? 'No symptom checks yet.' : 'Latest prediction: ${symptoms.first.data()['result']?['predictedDisease'] ?? 'Needs review'}')),
-                GlassCard(child: Text(reports.isEmpty ? 'No uploaded reports yet.' : 'Latest report risk: ${reports.first.data()['riskLevel'] ?? 'low'}')),
-                SizedBox(
-                  height: 220,
-                  child: GlassCard(
-                    child: spots.isEmpty
-                        ? const Center(child: Text('Upload CBC reports to see platelet trends.'))
-                        : LineChart(LineChartData(titlesData: const FlTitlesData(show: false), borderData: FlBorderData(show: false), lineBarsData: [LineChartBarData(isCurved: true, color: const Color(0xFF2563EB), spots: spots)])),
-                  ),
-                ),
-              ],
+          stream: FirebaseFirestore.instance
+              .collection('medical_reports')
+              .where('userId', isEqualTo: userId)
+              .snapshots(),
+          builder: (context, reportSnapshot) {
+            return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+              stream: FirebaseFirestore.instance
+                  .collection('symptom_checks')
+                  .where('userId', isEqualTo: userId)
+                  .snapshots(),
+              builder: (context, symptomSnapshot) {
+                return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+                  stream: FirebaseFirestore.instance
+                      .collection('chatbot_messages')
+                      .where('userId', isEqualTo: userId)
+                      .snapshots(),
+                  builder: (context, chatSnapshot) {
+                    final reports = sortedDocs(reportSnapshot.data?.docs ?? []);
+                    final symptoms =
+                        sortedDocs(symptomSnapshot.data?.docs ?? []);
+                    final chats = sortedDocs(chatSnapshot.data?.docs ?? []);
+                    final latestSymptom =
+                        symptoms.isEmpty ? null : symptoms.first.data();
+                    final latestReport =
+                        reports.isEmpty ? null : reports.first.data();
+                    final completion = profileCompletion(profile);
+                    return ListView(
+                      padding: const EdgeInsets.all(16),
+                      children: [
+                        const SectionTitle(
+                            title: 'AI healthcare overview',
+                            subtitle:
+                                'Live Firestore data from your authenticated MEDISENSE account.'),
+                        GridView.count(
+                          crossAxisCount:
+                              MediaQuery.sizeOf(context).width > 720 ? 4 : 2,
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          crossAxisSpacing: 12,
+                          mainAxisSpacing: 12,
+                          childAspectRatio: 1.15,
+                          children: [
+                            MetricTile(
+                                label: 'Profile',
+                                value: '$completion%',
+                                icon: Icons.person_outline,
+                                color: MediColors.primary),
+                            MetricTile(
+                                label: 'Prediction',
+                                value: latestSymptom?['result']
+                                            ?['predictedDisease']
+                                        ?.toString() ??
+                                    latestSymptom?['result']?['prediction']
+                                        ?.toString() ??
+                                    'No checks',
+                                icon: Icons.monitor_heart_outlined,
+                                color: MediColors.secondary),
+                            MetricTile(
+                                label: 'Report risk',
+                                value: latestReport?['riskLevel']?.toString() ??
+                                    'No reports',
+                                icon: Icons.document_scanner_outlined,
+                                color: MediColors.accent),
+                            MetricTile(
+                                label: 'Chat messages',
+                                value: chats.length.toString(),
+                                icon: Icons.smart_toy_outlined,
+                                color: const Color(0xFF0EA5E9)),
+                          ],
+                        ),
+                        const SizedBox(height: 14),
+                        GlassCard(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text('CBC trends',
+                                  style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w900)),
+                              const SizedBox(height: 12),
+                              SizedBox(
+                                height: 230,
+                                child: reports.isEmpty
+                                    ? const EmptyState(
+                                        text:
+                                            'Upload CBC reports to see platelet and WBC trends.')
+                                    : LineChart(LineChartData(
+                                        titlesData:
+                                            const FlTitlesData(show: false),
+                                        borderData: FlBorderData(show: false),
+                                        gridData: const FlGridData(show: true),
+                                        lineBarsData: [
+                                          LineChartBarData(
+                                              isCurved: true,
+                                              color: MediColors.primary,
+                                              spots: chartSpots(
+                                                  reports, 'platelets',
+                                                  divisor: 1000),
+                                              barWidth: 3,
+                                              dotData:
+                                                  const FlDotData(show: false)),
+                                          LineChartBarData(
+                                              isCurved: true,
+                                              color: MediColors.secondary,
+                                              spots: chartSpots(reports, 'wbc'),
+                                              barWidth: 3,
+                                              dotData:
+                                                  const FlDotData(show: false)),
+                                        ],
+                                      )),
+                              ),
+                            ],
+                          ),
+                        ),
+                        DashboardTimeline(
+                            title: 'Symptom history',
+                            docs: symptoms,
+                            empty: 'No symptom checks yet.',
+                            builder: (data) =>
+                                '${data['result']?['predictedDisease'] ?? data['result']?['prediction'] ?? 'Needs review'} - ${confidenceText(data['result']?['confidence'])}'),
+                        DashboardTimeline(
+                            title: 'Report history',
+                            docs: reports,
+                            empty: 'No medical reports yet.',
+                            builder: (data) =>
+                                '${data['file_name'] ?? 'Report'} - ${data['analysisResult'] ?? data['diagnosis'] ?? 'Saved analysis'}'),
+                        DashboardTimeline(
+                            title: 'Chatbot history',
+                            docs: chats,
+                            empty:
+                                'Ask MEDISENSE a question to save chatbot history.',
+                            builder: (data) =>
+                                data['user_message']?.toString() ??
+                                'Chat message'),
+                      ],
+                    );
+                  },
+                );
+              },
             );
           },
         );
       },
     );
   }
-}
-
-DateTime readDate(QueryDocumentSnapshot<Map<String, dynamic>> doc) {
-  final value = doc.data()['createdAt'];
-  return value is Timestamp ? value.toDate() : DateTime.fromMillisecondsSinceEpoch(0);
 }
 
 class SymptomScreen extends StatefulWidget {
@@ -350,33 +753,142 @@ class SymptomScreen extends StatefulWidget {
 }
 
 class _SymptomScreenState extends State<SymptomScreen> {
-  final symptoms = ['fever', 'headache', 'body pain', 'chills', 'vomiting', 'nausea', 'rash', 'bleeding', 'abdominal pain', 'diarrhea', 'cough', 'sore throat', 'weakness', 'joint pain', 'appetite loss', 'travel history', 'mosquito exposure', 'recent contaminated food/water exposure'];
   final selected = <String>{};
   final text = TextEditingController();
-  String result = 'Select symptoms or describe how you feel.';
+  final temperature = TextEditingController();
+  final duration = TextEditingController();
+  String feverLevel = 'moderate';
+  String feverPattern = 'continuous';
+  String result = '';
   bool loading = false;
+  bool textLoading = false;
+
+  static const groups = {
+    'General': [
+      'fever',
+      'headache',
+      'body pain',
+      'weakness',
+      'fatigue',
+      'chills',
+      'sweating',
+      'joint pain',
+      'appetite loss'
+    ],
+    'Digestive': [
+      'nausea',
+      'vomiting',
+      'diarrhea',
+      'abdominal pain',
+      'constipation',
+      'stomach cramps'
+    ],
+    'Respiratory': [
+      'cough',
+      'sore throat',
+      'runny nose',
+      'chest discomfort',
+      'breathing difficulty'
+    ],
+    'Dengue indicators': [
+      'rash',
+      'eye pain',
+      'bleeding gums',
+      'nose bleeding',
+      'low platelets if known',
+      'mosquito exposure'
+    ],
+    'Malaria indicators': [
+      'chills with sweating',
+      'recent mosquito bite',
+      'travel to malaria area',
+      'repeated fever cycles'
+    ],
+    'Typhoid indicators': [
+      'contaminated food/water exposure',
+      'persistent fever',
+      'diarrhea or constipation',
+      'coated tongue if applicable'
+    ],
+    'Risk factors': [
+      'recent travel',
+      'contact with sick person',
+      'existing medical condition',
+      'pregnancy',
+      'child/elderly patient',
+      'low immunity'
+    ],
+  };
+
+  @override
+  void dispose() {
+    text.dispose();
+    temperature.dispose();
+    duration.dispose();
+    super.dispose();
+  }
 
   Future<void> analyze({bool naturalText = false}) async {
-    setState(() => loading = true);
+    if (naturalText && text.text.trim().isEmpty) return;
+    if (!naturalText &&
+        selected.isEmpty &&
+        temperature.text.trim().isEmpty &&
+        duration.text.trim().isEmpty) {
+      return;
+    }
+    setState(() {
+      if (naturalText) {
+        textLoading = true;
+      } else {
+        loading = true;
+      }
+      result = '';
+    });
     try {
-      final endpoint = naturalText ? '/predict-text-symptoms' : '/predict-symptoms';
-      final body = naturalText ? {'text': text.text.trim()} : {'symptoms': selected.toList()};
-      final response = await http.post(Uri.parse('${apiBaseUrl()}$endpoint'), headers: {'Content-Type': 'application/json'}, body: jsonEncode(body));
-      final data = jsonDecode(response.body) as Map<String, dynamic>;
-      if (response.statusCode >= 300) throw data['detail'] ?? data['error'] ?? 'Prediction failed';
-      await FirebaseFirestore.instance.collection(naturalText ? 'text_symptom_checks' : 'symptom_checks').add({
+      final endpoint =
+          naturalText ? '/predict-text-symptoms' : '/predict-symptoms';
+      final body = naturalText
+          ? {'text': text.text.trim()}
+          : {
+              'symptoms': selected.toList(),
+              'clinicalInputs': {
+                'feverLevel': feverLevel,
+                'temperature': temperature.text.trim(),
+                'feverDuration': duration.text.trim(),
+                'feverPattern': feverPattern,
+              },
+            };
+      final data = await postJson(endpoint, body);
+      await FirebaseFirestore.instance
+          .collection(naturalText ? 'text_symptom_checks' : 'symptom_checks')
+          .add({
         'userId': FirebaseAuth.instance.currentUser!.uid,
-        if (naturalText) 'text': text.text.trim() else 'symptoms': selected.toList(),
+        if (naturalText)
+          'text': text.text.trim()
+        else
+          'symptoms': selected.toList(),
+        if (!naturalText)
+          'clinicalInputs': {
+            'feverLevel': feverLevel,
+            'temperature': temperature.text.trim(),
+            'feverDuration': duration.text.trim(),
+            'feverPattern': feverPattern,
+          },
         'result': data,
         'createdAt': FieldValue.serverTimestamp(),
         'updatedAt': FieldValue.serverTimestamp(),
       });
-      setState(() => result = '${data['predictedDisease']} - ${(((data['confidence'] as num?) ?? 0) * 100).round()}%\n${data['explanation'] ?? ''}\n${data['doctorAdvice'] ?? data['suggestedNextStep'] ?? ''}');
+      setState(() => result =
+          '${data['predictedDisease'] ?? data['prediction'] ?? 'Needs review'} - ${confidenceText(data['confidence'])}\n${data['explanation'] ?? ''}\n${data['doctorAdvice'] ?? data['suggestedNextStep'] ?? ''}');
     } catch (err) {
-      final text = err.toString();
-      setState(() => result = text.contains('SocketException') || text.contains('Connection refused') ? 'AI service is temporarily unavailable. Please start the backend server.' : text);
+      setState(() => result = friendlyBackendError(err, chatbot: false));
     } finally {
-      setState(() => loading = false);
+      if (mounted) {
+        setState(() {
+          loading = false;
+          textLoading = false;
+        });
+      }
     }
   }
 
@@ -385,17 +897,125 @@ class _SymptomScreenState extends State<SymptomScreen> {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        const Text('Symptom checker', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900)),
+        const SectionTitle(
+            title: 'Symptom scanner',
+            subtitle:
+                'Detailed disease-category intake with Firestore history sync.'),
+        GlassCard(
+          child: Column(
+            children: [
+              Row(children: [
+                Expanded(
+                    child: DropdownButtonFormField(
+                        initialValue: feverLevel,
+                        items: const ['low', 'moderate', 'high', 'very high']
+                            .map((item) => DropdownMenuItem(
+                                value: item, child: Text(item)))
+                            .toList(),
+                        onChanged: (value) =>
+                            setState(() => feverLevel = value ?? 'moderate'),
+                        decoration:
+                            const InputDecoration(labelText: 'Fever level'))),
+                const SizedBox(width: 10),
+                Expanded(
+                    child: DropdownButtonFormField(
+                        initialValue: feverPattern,
+                        items: const [
+                          'continuous',
+                          'intermittent',
+                          'evening fever',
+                          'night fever'
+                        ]
+                            .map((item) => DropdownMenuItem(
+                                value: item, child: Text(item)))
+                            .toList(),
+                        onChanged: (value) => setState(
+                            () => feverPattern = value ?? 'continuous'),
+                        decoration:
+                            const InputDecoration(labelText: 'Pattern'))),
+              ]),
+              const SizedBox(height: 10),
+              Row(children: [
+                Expanded(
+                    child: TextField(
+                        controller: temperature,
+                        decoration:
+                            const InputDecoration(labelText: 'Temperature'))),
+                const SizedBox(width: 10),
+                Expanded(
+                    child: TextField(
+                        controller: duration,
+                        decoration:
+                            const InputDecoration(labelText: 'Duration'))),
+              ]),
+            ],
+          ),
+        ),
+        ...groups.entries.map((entry) => GlassCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(entry.key,
+                      style: const TextStyle(
+                          fontSize: 17, fontWeight: FontWeight.w900)),
+                  const SizedBox(height: 10),
+                  Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: entry.value
+                          .map((item) => FilterChip(
+                              selected: selected.contains(item),
+                              label: Text(item),
+                              onSelected: (_) => setState(() =>
+                                  selected.contains(item)
+                                      ? selected.remove(item)
+                                      : selected.add(item))))
+                          .toList()),
+                ],
+              ),
+            )),
+        FilledButton.icon(
+            onPressed: loading ? null : () => analyze(),
+            icon: loading
+                ? const SizedBox.square(
+                    dimension: 16,
+                    child: CircularProgressIndicator(
+                        strokeWidth: 2, color: Colors.white))
+                : const Icon(Icons.auto_awesome),
+            label: Text(loading ? 'Analyzing...' : 'Predict disease')),
         const SizedBox(height: 12),
-        Wrap(spacing: 8, runSpacing: 8, children: symptoms.map((item) => FilterChip(selected: selected.contains(item), label: Text(item), onSelected: (_) => setState(() => selected.contains(item) ? selected.remove(item) : selected.add(item)))).toList()),
-        const SizedBox(height: 16),
-        FilledButton.icon(onPressed: selected.isEmpty || loading ? null : () => analyze(), icon: const Icon(Icons.auto_awesome), label: Text(loading ? 'Analyzing...' : 'Predict disease')),
-        const SizedBox(height: 16),
-        TextField(controller: text, minLines: 2, maxLines: 4, onChanged: (_) => setState(() {}), decoration: const InputDecoration(labelText: 'Describe symptoms', border: OutlineInputBorder())),
-        const SizedBox(height: 8),
-        OutlinedButton.icon(onPressed: text.text.trim().isEmpty || loading ? null : () => analyze(naturalText: true), icon: const Icon(Icons.notes), label: const Text('Analyze text symptoms')),
-        const SizedBox(height: 16),
-        GlassCard(child: Text(result, style: const TextStyle(fontWeight: FontWeight.w700))),
+        GlassCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Text symptom checker',
+                  style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900)),
+              const SizedBox(height: 10),
+              TextField(
+                  controller: text,
+                  minLines: 3,
+                  maxLines: 5,
+                  onChanged: (_) => setState(() {}),
+                  decoration: const InputDecoration(
+                      labelText: 'Describe symptoms naturally')),
+              const SizedBox(height: 10),
+              OutlinedButton.icon(
+                  onPressed: text.text.trim().isEmpty || textLoading
+                      ? null
+                      : () => analyze(naturalText: true),
+                  icon: const Icon(Icons.notes_outlined),
+                  label: Text(
+                      textLoading ? 'Analyzing...' : 'Analyze text symptoms')),
+            ],
+          ),
+        ),
+        GlassCard(
+            child: Text(
+                result.isEmpty
+                    ? 'Prediction results and safety guidance will appear here.'
+                    : result,
+                style: const TextStyle(
+                    fontWeight: FontWeight.w700, height: 1.35))),
       ],
     );
   }
@@ -413,73 +1033,104 @@ class _ReportsScreenState extends State<ReportsScreen> {
   bool loading = false;
 
   Future<void> pickAndUpload() async {
-    final picked = await FilePicker.platform.pickFiles(withData: true, type: FileType.custom, allowedExtensions: ['png', 'jpg', 'jpeg', 'webp', 'pdf']);
+    final picked = await FilePicker.platform.pickFiles(
+        withData: true,
+        type: FileType.custom,
+        allowedExtensions: ['png', 'jpg', 'jpeg', 'webp', 'pdf']);
     final file = picked?.files.single;
     if (file == null || file.bytes == null) return;
-    setState(() => loading = true);
+    setState(() {
+      loading = true;
+      result = 'Uploading report securely...';
+    });
     try {
       final user = FirebaseAuth.instance.currentUser!;
-      final token = await user.getIdToken();
-      final upload = http.MultipartRequest('POST', Uri.parse('$webApiUrl/api/cloudinary-upload'));
-      upload.headers['Authorization'] = 'Bearer $token';
-      upload.fields['kind'] = 'report';
-      upload.fields['userId'] = user.uid;
-      upload.files.add(http.MultipartFile.fromBytes('file', file.bytes!, filename: file.name));
-      final uploaded = await upload.send();
-      final uploadBody = jsonDecode(await uploaded.stream.bytesToString()) as Map<String, dynamic>;
-      if (uploaded.statusCode >= 300) throw uploadBody['error'] ?? 'Cloudinary upload failed';
-
-      final ocr = await postJson('/ocr-report', {'fileUrl': uploadBody['secureUrl'], 'fileType': file.extension == 'pdf' ? 'application/pdf' : 'image/${file.extension}', 'fileName': file.name});
-      final values = (ocr['extractedValues'] ?? ocr['extracted_data']) as Map<String, dynamic>;
-      final analysis = await postJson('/analyze-report-values', {'values': values, 'symptoms': []});
-      await FirebaseFirestore.instance.collection('medical_reports').add({
+      final uploadBody = await uploadToCloudinary(file, kind: 'report');
+      final fileType = mimeForFile(file);
+      final ocr = await postJson('/ocr-report', {
+        'fileUrl': uploadBody['secureUrl'],
+        'fileType': fileType,
+        'fileName': file.name
+      });
+      final values = Map<String, dynamic>.from(
+          (ocr['extractedValues'] ?? ocr['extracted_data'] ?? {}) as Map);
+      if (values.values.every((value) =>
+          value == null || value == 'N/A' || value.toString().isEmpty)) {
+        throw 'OCR could not read CBC values. Upload a clearer report image or PDF.';
+      }
+      final analysis = await postJson(
+          '/analyze-report-values', {'values': values, 'symptoms': []});
+      final reportRef =
+          await FirebaseFirestore.instance.collection('medical_reports').add({
         'userId': user.uid,
         'fileUrl': uploadBody['secureUrl'],
         'publicId': uploadBody['publicId'],
-        'fileType': file.extension,
+        'fileType': fileType,
         'file_name': file.name,
         'extractedText': ocr['extractedText'] ?? ocr['raw_text'] ?? '',
         'extractedValues': values,
-        'analysisResult': analysis['summary'],
-        'riskLevel': analysis['riskLevel'],
-        'platelets': values['platelets'],
-        'wbc': values['wbc'],
-        'hemoglobin': values['hemoglobin'],
+        'analysisResult': analysis['summary'] ?? analysis['analysis'] ?? '',
+        'riskLevel': analysis['riskLevel'] ?? 'low',
+        'flags': analysis['flags'] ?? [],
+        for (final marker in reportMarkers)
+          marker: toNullableNumber(values[marker]),
         'createdAt': FieldValue.serverTimestamp(),
         'updatedAt': FieldValue.serverTimestamp(),
       });
-      setState(() => result = 'Platelets: ${values['platelets'] ?? 'N/A'}\nWBC: ${values['wbc'] ?? 'N/A'}\nHemoglobin: ${values['hemoglobin'] ?? 'N/A'}\n${analysis['summary']}');
+      await Future.wait(reportMarkers.map((marker) =>
+          FirebaseFirestore.instance.collection('report_values').add({
+            'userId': user.uid,
+            'reportId': reportRef.id,
+            'marker': marker,
+            'value': toNullableNumber(values[marker]),
+            'status': markerStatus(marker, toNullableNumber(values[marker])),
+            'createdAt': FieldValue.serverTimestamp(),
+            'updatedAt': FieldValue.serverTimestamp(),
+          })));
+      setState(() => result =
+          'Platelets: ${values['platelets'] ?? 'N/A'}\nWBC: ${values['wbc'] ?? 'N/A'}\nHemoglobin: ${values['hemoglobin'] ?? 'N/A'}\n${analysis['summary'] ?? analysis['analysis'] ?? ''}');
     } catch (err) {
-      setState(() => result = err.toString());
+      setState(() => result = friendlyBackendError(err, chatbot: false));
     } finally {
-      setState(() => loading = false);
+      if (mounted) setState(() => loading = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return ListView(padding: const EdgeInsets.all(16), children: [
-      const Text('Report analysis', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900)),
-      const SizedBox(height: 12),
-      FilledButton.icon(onPressed: loading ? null : pickAndUpload, icon: const Icon(Icons.upload_file), label: Text(loading ? 'Analyzing...' : 'Upload report')),
-      const SizedBox(height: 16),
-      GlassCard(child: Text(result)),
+      const SectionTitle(
+          title: 'Report analyzer',
+          subtitle:
+              'Cloudinary upload, FastAPI OCR, CBC extraction, and Firestore report history.'),
+      GlassCard(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Icon(Icons.document_scanner_outlined,
+                color: MediColors.primary, size: 36),
+            const SizedBox(height: 12),
+            const Text('Upload CBC report',
+                style: TextStyle(fontSize: 19, fontWeight: FontWeight.w900)),
+            const SizedBox(height: 8),
+            const Text(
+                'PDF and image reports are signed by the web API route so Cloudinary secrets stay off the device.'),
+            const SizedBox(height: 14),
+            SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                    onPressed: loading ? null : pickAndUpload,
+                    icon: const Icon(Icons.upload_file),
+                    label:
+                        Text(loading ? 'Analyzing...' : 'Upload and analyze'))),
+          ],
+        ),
+      ),
+      GlassCard(
+          child: Text(result,
+              style:
+                  const TextStyle(height: 1.35, fontWeight: FontWeight.w700))),
     ]);
-  }
-}
-
-Future<Map<String, dynamic>> postJson(String path, Map<String, dynamic> body) async {
-  try {
-    final response = await http.post(Uri.parse('${apiBaseUrl()}$path'), headers: {'Content-Type': 'application/json'}, body: jsonEncode(body));
-    final data = jsonDecode(response.body) as Map<String, dynamic>;
-    if (response.statusCode >= 300) throw data['detail'] ?? data['error'] ?? 'Request failed';
-    return data;
-  } catch (error) {
-    final text = error.toString();
-    if (text.contains('SocketException') || text.contains('Connection refused') || text.contains('XMLHttpRequest')) {
-      throw 'AI assistant is temporarily unavailable. Please start the backend server.';
-    }
-    rethrow;
   }
 }
 
@@ -522,7 +1173,13 @@ class _ChatScreenState extends State<ChatScreen> {
     });
     try {
       final healthContext = await currentChatContext(user.uid);
-      final data = await postJson('/chatbot', {'message': text, 'userId': user.uid, 'context': healthContext, 'history': [], 'healthContext': healthContext});
+      final data = await postJson('/chatbot', {
+        'message': text,
+        'userId': user.uid,
+        'context': healthContext,
+        'history': [],
+        'healthContext': healthContext
+      });
       if (data['savedToFirestore'] != true) {
         await FirebaseFirestore.instance.collection('chatbot_messages').add({
           'userId': user.uid,
@@ -536,14 +1193,21 @@ class _ChatScreenState extends State<ChatScreen> {
         });
       }
     } catch (err) {
-      final friendly = friendlyChatError(err);
+      final friendly = friendlyBackendError(err, chatbot: true);
       setState(() => errorMessage = friendly);
-      await FirebaseFirestore.instance.collection('notifications').add({'userId': user.uid, 'type': 'chatbot_error', 'message': friendly, 'createdAt': FieldValue.serverTimestamp()});
-    } finally {
-      setState(() {
-        loading = false;
-        pendingMessage = '';
+      await FirebaseFirestore.instance.collection('notifications').add({
+        'userId': user.uid,
+        'type': 'chatbot_error',
+        'message': friendly,
+        'createdAt': FieldValue.serverTimestamp()
       });
+    } finally {
+      if (mounted) {
+        setState(() {
+          loading = false;
+          pendingMessage = '';
+        });
+      }
     }
   }
 
@@ -553,104 +1217,148 @@ class _ChatScreenState extends State<ChatScreen> {
     return Column(children: [
       Expanded(
         child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-          stream: FirebaseFirestore.instance.collection('chatbot_messages').where('userId', isEqualTo: userId).snapshots(),
+          stream: FirebaseFirestore.instance
+              .collection('chatbot_messages')
+              .where('userId', isEqualTo: userId)
+              .snapshots(),
           builder: (context, snapshot) {
-            final docs = [...?snapshot.data?.docs]..sort((a, b) => readDate(a).compareTo(readDate(b)));
+            final docs =
+                sortedDocs(snapshot.data?.docs ?? []).reversed.toList();
             return ListView(padding: const EdgeInsets.all(16), children: [
-              const Text('MEDISENSE assistant', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900)),
+              const SectionTitle(
+                  title: 'AI chatbot',
+                  subtitle:
+                      'Provider-ready guidance with local medical fallback.'),
+              Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: quickQuestions
+                      .map((question) => ActionChip(
+                          label: Text(question),
+                          onPressed: loading ? null : () => send(question)))
+                      .toList()),
               const SizedBox(height: 12),
-              Wrap(spacing: 8, runSpacing: 8, children: quickQuestions.map((question) => ActionChip(label: Text(question), onPressed: loading ? null : () => send(question))).toList()),
-              const SizedBox(height: 12),
-              if (errorMessage.isNotEmpty) GlassCard(child: Text(errorMessage, style: const TextStyle(color: Colors.red, fontWeight: FontWeight.w700))),
-              if (docs.isEmpty && pendingMessage.isEmpty && !loading) const GlassCard(child: Text('Ask MEDISENSE about symptoms, report values, precautions, or when to seek care.')),
+              if (errorMessage.isNotEmpty)
+                GlassCard(
+                    child: Text(errorMessage,
+                        style: const TextStyle(
+                            color: Colors.red, fontWeight: FontWeight.w700))),
+              if (docs.isEmpty && pendingMessage.isEmpty && !loading)
+                const EmptyState(
+                    text:
+                        'Ask MEDISENSE about symptoms, CBC values, precautions, or when to seek care.'),
               ...docs.expand((doc) => [
-                    chatBubble(context, doc.data()['user_message']?.toString() ?? '', true),
-                    chatBubble(context, doc.data()['ai_response']?.toString() ?? '', false),
+                    chatBubble(context,
+                        doc.data()['user_message']?.toString() ?? '', true),
+                    chatBubble(context,
+                        doc.data()['ai_response']?.toString() ?? '', false),
                   ]),
-              if (pendingMessage.isNotEmpty) chatBubble(context, pendingMessage, true),
-              if (loading) typingBubble(context),
+              if (pendingMessage.isNotEmpty)
+                chatBubble(context, pendingMessage, true),
+              if (loading) typingBubble(),
             ]);
           },
         ),
       ),
-      Padding(
-        padding: const EdgeInsets.all(12),
-        child: Row(children: [
-          Expanded(
-            child: TextField(
-              controller: controller,
-              minLines: 1,
-              maxLines: 3,
-              onSubmitted: (_) => send(),
-              decoration: InputDecoration(
-                hintText: 'Ask MEDISENSE...',
-                border: const OutlineInputBorder(),
-                suffixIcon: controller.text.isEmpty ? null : IconButton(onPressed: () => setState(() => controller.clear()), icon: const Icon(Icons.close)),
+      SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Row(children: [
+            Expanded(
+              child: TextField(
+                controller: controller,
+                minLines: 1,
+                maxLines: 3,
+                onSubmitted: (_) => send(),
+                decoration: InputDecoration(
+                  hintText: 'Ask MEDISENSE...',
+                  suffixIcon: controller.text.isEmpty
+                      ? null
+                      : IconButton(
+                          onPressed: () => setState(() => controller.clear()),
+                          icon: const Icon(Icons.close)),
+                ),
+                onChanged: (_) => setState(() {}),
               ),
-              onChanged: (_) => setState(() {}),
             ),
-          ),
-          const SizedBox(width: 8),
-          IconButton.filled(onPressed: loading ? null : () => send(), icon: loading ? const SizedBox.square(dimension: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : const Icon(Icons.send)),
-        ]),
+            const SizedBox(width: 8),
+            IconButton.filled(
+                onPressed: loading ? null : () => send(),
+                icon: loading
+                    ? const SizedBox.square(
+                        dimension: 18,
+                        child: CircularProgressIndicator(
+                            strokeWidth: 2, color: Colors.white))
+                    : const Icon(Icons.send)),
+          ]),
+        ),
       ),
     ]);
   }
-
-  Widget chatBubble(BuildContext context, String text, bool fromUser) {
-    final width = MediaQuery.sizeOf(context).width * 0.82;
-    return Align(
-      alignment: fromUser ? Alignment.centerRight : Alignment.centerLeft,
-      child: Container(
-        constraints: BoxConstraints(maxWidth: width),
-        margin: const EdgeInsets.only(bottom: 10),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-        decoration: BoxDecoration(
-          color: fromUser ? const Color(0xFF2563EB) : Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: fromUser ? const Color(0xFF2563EB) : const Color(0xFFE2E8F0)),
-        ),
-        child: Text(text, style: TextStyle(color: fromUser ? Colors.white : const Color(0xFF334155), height: 1.35)),
-      ),
-    );
-  }
-
-  Widget typingBubble(BuildContext context) {
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 10),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: const Color(0xFFE2E8F0))),
-        child: const Row(mainAxisSize: MainAxisSize.min, children: [SizedBox.square(dimension: 18, child: CircularProgressIndicator(strokeWidth: 2)), SizedBox(width: 12), Text('MEDISENSE is typing...')]),
-      ),
-    );
-  }
 }
 
-Future<Map<String, dynamic>> currentChatContext(String userId) async {
-  try {
-    final profile = await FirebaseFirestore.instance.collection('users').doc(userId).get();
-    final reportsSnapshot = await FirebaseFirestore.instance.collection('medical_reports').where('userId', isEqualTo: userId).limit(10).get();
-    final symptomSnapshot = await FirebaseFirestore.instance.collection('symptom_checks').where('userId', isEqualTo: userId).limit(10).get();
-    final reports = [...reportsSnapshot.docs]..sort((a, b) => readDate(b).compareTo(readDate(a)));
-    final symptoms = [...symptomSnapshot.docs]..sort((a, b) => readDate(b).compareTo(readDate(a)));
-    return {
-      'profile': profile.data(),
-      'latestReport': reports.isEmpty ? null : reports.first.data(),
-      'latestSymptomCheck': symptoms.isEmpty ? null : symptoms.first.data(),
-    };
-  } catch (_) {
-    return {};
-  }
-}
+class HistoryScreen extends StatelessWidget {
+  const HistoryScreen({super.key});
 
-String friendlyChatError(Object error) {
-  final text = error.toString().replaceFirst('Exception: ', '');
-  final blocked = RegExp('failed to fetch|quota|provider|api key|groq|gemini|openrouter|rate-limit|insufficient', caseSensitive: false);
-  if (blocked.hasMatch(text) || text.trim().isEmpty) return 'MEDISENSE could not answer right now. Please try again in a moment.';
-  if (text.contains('SocketException') || text.contains('Connection refused') || text.contains('XMLHttpRequest')) return 'MEDISENSE is offline right now. Please start the local healthcare service and try again.';
-  return text;
+  @override
+  Widget build(BuildContext context) {
+    final userId = FirebaseAuth.instance.currentUser!.uid;
+    return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+      stream: FirebaseFirestore.instance
+          .collection('symptom_checks')
+          .where('userId', isEqualTo: userId)
+          .snapshots(),
+      builder: (context, symptomSnapshot) {
+        return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+          stream: FirebaseFirestore.instance
+              .collection('medical_reports')
+              .where('userId', isEqualTo: userId)
+              .snapshots(),
+          builder: (context, reportSnapshot) {
+            return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+              stream: FirebaseFirestore.instance
+                  .collection('chatbot_messages')
+                  .where('userId', isEqualTo: userId)
+                  .snapshots(),
+              builder: (context, chatSnapshot) {
+                final symptoms = sortedDocs(symptomSnapshot.data?.docs ?? []);
+                final reports = sortedDocs(reportSnapshot.data?.docs ?? []);
+                final chats = sortedDocs(chatSnapshot.data?.docs ?? []);
+                return ListView(
+                  padding: const EdgeInsets.all(16),
+                  children: [
+                    const SectionTitle(
+                        title: 'Health history',
+                        subtitle:
+                            'Firestore records shared with the web dashboard.'),
+                    DashboardTimeline(
+                        title: 'Symptom checks',
+                        docs: symptoms,
+                        empty: 'No symptom history yet.',
+                        builder: (data) =>
+                            '${data['result']?['predictedDisease'] ?? data['result']?['prediction'] ?? 'Needs review'} - ${formatDate(data['createdAt'])}'),
+                    DashboardTimeline(
+                        title: 'Reports',
+                        docs: reports,
+                        empty: 'No report history yet.',
+                        builder: (data) =>
+                            '${data['file_name'] ?? 'Report'} - ${data['riskLevel'] ?? 'low'} risk'),
+                    DashboardTimeline(
+                        title: 'Chatbot',
+                        docs: chats,
+                        empty: 'No chat history yet.',
+                        builder: (data) =>
+                            data['user_message']?.toString() ?? 'Chat message'),
+                  ],
+                );
+              },
+            );
+          },
+        );
+      },
+    );
+  }
 }
 
 class ProfileScreen extends StatefulWidget {
@@ -671,9 +1379,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
     'allergies': TextEditingController(),
     'existingConditions': TextEditingController(),
     'emergencyContact': TextEditingController(),
+    'phone': TextEditingController(),
     'address': TextEditingController(),
   };
   String message = '';
+  bool loading = false;
 
   @override
   void initState() {
@@ -681,33 +1391,106 @@ class _ProfileScreenState extends State<ProfileScreen> {
     load();
   }
 
+  @override
+  void dispose() {
+    for (final controller in fields.values) {
+      controller.dispose();
+    }
+    super.dispose();
+  }
+
   Future<void> load() async {
-    final doc = await FirebaseFirestore.instance.collection('users').doc(FirebaseAuth.instance.currentUser!.uid).get();
+    final doc = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(FirebaseAuth.instance.currentUser!.uid)
+        .get();
     final data = doc.data() ?? {};
     for (final entry in fields.entries) {
       final value = data[entry.key];
-      entry.value.text = value is List ? value.join(', ') : (value?.toString() ?? '');
+      entry.value.text =
+          value is List ? value.join(', ') : (value?.toString() ?? '');
     }
-    setState(() {});
+    if (mounted) setState(() {});
   }
 
   Future<void> save() async {
-    await FirebaseFirestore.instance.collection('users').doc(FirebaseAuth.instance.currentUser!.uid).set({
-      for (final entry in fields.entries) entry.key: ['allergies', 'existingConditions'].contains(entry.key) ? entry.value.text.split(',').map((item) => item.trim()).where((item) => item.isNotEmpty).toList() : entry.value.text.trim(),
+    setState(() => loading = true);
+    await FirebaseFirestore.instance
+        .collection('users')
+        .doc(FirebaseAuth.instance.currentUser!.uid)
+        .set({
+      for (final entry in fields.entries)
+        entry.key: ['allergies', 'existingConditions'].contains(entry.key)
+            ? entry.value.text
+                .split(',')
+                .map((item) => item.trim())
+                .where((item) => item.isNotEmpty)
+                .toList()
+            : entry.value.text.trim(),
       'userId': FirebaseAuth.instance.currentUser!.uid,
       'email': FirebaseAuth.instance.currentUser!.email,
       'updatedAt': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
-    setState(() => message = 'Profile saved.');
+    setState(() {
+      loading = false;
+      message = 'Profile saved and synced to Firestore.';
+    });
+  }
+
+  Future<void> uploadAvatar() async {
+    final picked = await FilePicker.platform.pickFiles(
+        withData: true,
+        type: FileType.custom,
+        allowedExtensions: ['png', 'jpg', 'jpeg', 'webp']);
+    final file = picked?.files.single;
+    if (file == null || file.bytes == null) return;
+    setState(() {
+      loading = true;
+      message = 'Uploading profile photo...';
+    });
+    try {
+      final uploaded = await uploadToCloudinary(file, kind: 'profile');
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(FirebaseAuth.instance.currentUser!.uid)
+          .set({
+        'profileImage': uploaded['secureUrl'],
+        'profileImagePublicId': uploaded['publicId'],
+        'updatedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+      setState(() => message = 'Profile photo updated.');
+    } catch (error) {
+      setState(() => message = friendlyBackendError(error, chatbot: false));
+    } finally {
+      if (mounted) setState(() => loading = false);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return ListView(padding: const EdgeInsets.all(16), children: [
-      const Text('Profile', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900)),
+      const SectionTitle(
+          title: 'Profile',
+          subtitle: 'Personalization data shared by web and mobile.'),
+      OutlinedButton.icon(
+          onPressed: loading ? null : uploadAvatar,
+          icon: const Icon(Icons.add_a_photo_outlined),
+          label: const Text('Upload profile image')),
       const SizedBox(height: 12),
-      ...fields.entries.map((entry) => Padding(padding: const EdgeInsets.only(bottom: 10), child: TextField(controller: entry.value, decoration: InputDecoration(labelText: entry.key, border: const OutlineInputBorder())))),
-      FilledButton.icon(onPressed: save, icon: const Icon(Icons.save), label: const Text('Save profile')),
+      ...fields.entries.map((entry) => Padding(
+          padding: const EdgeInsets.only(bottom: 10),
+          child: TextField(
+              controller: entry.value,
+              decoration: InputDecoration(labelText: labelFor(entry.key))))),
+      FilledButton.icon(
+          onPressed: loading ? null : save,
+          icon: loading
+              ? const SizedBox.square(
+                  dimension: 16,
+                  child: CircularProgressIndicator(
+                      strokeWidth: 2, color: Colors.white))
+              : const Icon(Icons.save),
+          label: const Text('Save profile')),
       if (message.isNotEmpty) GlassCard(child: Text(message)),
     ]);
   }
@@ -724,36 +1507,588 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool emailNotifications = true;
   bool reportAlerts = true;
   bool symptomReminders = false;
+  bool privacyMode = false;
   String theme = 'light';
   String message = '';
+  bool loading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    load();
+  }
+
+  Future<void> load() async {
+    final doc = await FirebaseFirestore.instance
+        .collection('user_settings')
+        .doc(FirebaseAuth.instance.currentUser!.uid)
+        .get();
+    final data = doc.data();
+    if (data == null) return;
+    setState(() {
+      emailNotifications = data['email_notifications'] == true;
+      reportAlerts = data['report_alerts'] != false;
+      symptomReminders = data['symptom_reminders'] == true;
+      privacyMode = data['privacyMode'] == true;
+      theme = data['theme']?.toString() ?? 'light';
+    });
+  }
 
   Future<void> save() async {
-    await FirebaseFirestore.instance.collection('user_settings').doc(FirebaseAuth.instance.currentUser!.uid).set({
+    setState(() => loading = true);
+    await FirebaseFirestore.instance
+        .collection('user_settings')
+        .doc(FirebaseAuth.instance.currentUser!.uid)
+        .set({
       'userId': FirebaseAuth.instance.currentUser!.uid,
       'email_notifications': emailNotifications,
       'report_alerts': reportAlerts,
       'symptom_reminders': symptomReminders,
+      'privacyMode': privacyMode,
       'theme': theme,
       'updatedAt': FieldValue.serverTimestamp(),
       'createdAt': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
-    setState(() => message = 'Settings saved.');
+    setState(() {
+      loading = false;
+      message = 'Settings saved.';
+    });
+  }
+
+  Future<void> resetPassword() async {
+    try {
+      await FirebaseAuth.instance.sendPasswordResetEmail(
+          email: FirebaseAuth.instance.currentUser!.email!);
+      setState(() => message = 'Password reset email sent.');
+    } catch (error) {
+      setState(() => message = friendlyAuthError(error));
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return ListView(padding: const EdgeInsets.all(16), children: [
-      const Text('Settings', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900)),
-      SwitchListTile(value: emailNotifications, onChanged: (value) => setState(() => emailNotifications = value), title: const Text('Email notifications')),
-      SwitchListTile(value: reportAlerts, onChanged: (value) => setState(() => reportAlerts = value), title: const Text('Report alerts')),
-      SwitchListTile(value: symptomReminders, onChanged: (value) => setState(() => symptomReminders = value), title: const Text('Symptom reminders')),
-      DropdownButtonFormField(initialValue: theme, items: const [DropdownMenuItem(value: 'light', child: Text('Light')), DropdownMenuItem(value: 'system', child: Text('System'))], onChanged: (value) => setState(() => theme = value ?? 'light'), decoration: const InputDecoration(labelText: 'Theme')),
-      const SizedBox(height: 12),
-      FilledButton.icon(onPressed: save, icon: const Icon(Icons.save), label: const Text('Save settings')),
-      OutlinedButton(onPressed: () => FirebaseAuth.instance.sendPasswordResetEmail(email: FirebaseAuth.instance.currentUser!.email!), child: const Text('Send password reset')),
-      OutlinedButton(onPressed: () => FirebaseAuth.instance.signOut(), child: const Text('Logout')),
-      OutlinedButton(onPressed: () => setState(() => message = 'Delete account requires a protected admin deletion endpoint.'), child: const Text('Request account deletion')),
+      const SectionTitle(
+          title: 'Settings',
+          subtitle:
+              'Synced preferences, security actions, and account controls.'),
+      GlassCard(
+        child: Column(children: [
+          SwitchListTile(
+              value: emailNotifications,
+              onChanged: (value) => setState(() => emailNotifications = value),
+              title: const Text('Email notifications')),
+          SwitchListTile(
+              value: reportAlerts,
+              onChanged: (value) => setState(() => reportAlerts = value),
+              title: const Text('Report alerts')),
+          SwitchListTile(
+              value: symptomReminders,
+              onChanged: (value) => setState(() => symptomReminders = value),
+              title: const Text('Symptom reminders')),
+          SwitchListTile(
+              value: privacyMode,
+              onChanged: (value) => setState(() => privacyMode = value),
+              title: const Text('Privacy mode')),
+          DropdownButtonFormField(
+              initialValue: theme,
+              items: const [
+                DropdownMenuItem(value: 'light', child: Text('Light medical')),
+                DropdownMenuItem(value: 'system', child: Text('System'))
+              ],
+              onChanged: (value) => setState(() => theme = value ?? 'light'),
+              decoration: const InputDecoration(labelText: 'Theme')),
+        ]),
+      ),
+      FilledButton.icon(
+          onPressed: loading ? null : save,
+          icon: loading
+              ? const SizedBox.square(
+                  dimension: 16,
+                  child: CircularProgressIndicator(
+                      strokeWidth: 2, color: Colors.white))
+              : const Icon(Icons.save),
+          label: const Text('Save settings')),
+      OutlinedButton(
+          onPressed: resetPassword, child: const Text('Send password reset')),
+      OutlinedButton(
+          onPressed: () => FirebaseAuth.instance.signOut(),
+          child: const Text('Logout')),
+      OutlinedButton(
+          onPressed: () => setState(() => message =
+              'Delete account requires a protected admin deletion endpoint.'),
+          child: const Text('Request account deletion')),
       if (message.isNotEmpty) GlassCard(child: Text(message)),
     ]);
   }
 }
+
+class PremiumBackground extends StatelessWidget {
+  const PremiumBackground({required this.child, super.key});
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Color(0xFFFFFFFF), Color(0xFFF8FAFC), Color(0xFFEFF6FF)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
+      child: child,
+    );
+  }
+}
+
+class DoctorMark extends StatelessWidget {
+  const DoctorMark({this.size = 52, super.key});
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.9),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: Colors.white),
+        boxShadow: const [
+          BoxShadow(
+              color: Color(0x223B82F6), blurRadius: 34, offset: Offset(0, 18))
+        ],
+      ),
+      child: const Icon(Icons.medical_services_outlined,
+          color: MediColors.primary),
+    );
+  }
+}
+
+class GlassCard extends StatelessWidget {
+  const GlassCard({required this.child, super.key});
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 14),
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.88),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white),
+        boxShadow: const [
+          BoxShadow(
+              color: Color(0x1560758B), blurRadius: 30, offset: Offset(0, 16))
+        ],
+      ),
+      child: child,
+    );
+  }
+}
+
+class SectionTitle extends StatelessWidget {
+  const SectionTitle({required this.title, required this.subtitle, super.key});
+  final String title;
+  final String subtitle;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('MEDISENSE',
+              style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 1.6,
+                  color: MediColors.primary)),
+          const SizedBox(height: 4),
+          Text(title,
+              style: const TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.w900,
+                  color: MediColors.text)),
+          const SizedBox(height: 6),
+          Text(subtitle,
+              style: const TextStyle(color: Color(0xFF64748B), height: 1.4)),
+        ],
+      ),
+    );
+  }
+}
+
+class EmptyState extends StatelessWidget {
+  const EmptyState({required this.text, super.key});
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return GlassCard(
+        child: Text(text, style: const TextStyle(color: Color(0xFF64748B))));
+  }
+}
+
+class MetricTile extends StatelessWidget {
+  const MetricTile(
+      {required this.label,
+      required this.value,
+      required this.icon,
+      required this.color,
+      super.key});
+  final String label;
+  final String value;
+  final IconData icon;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.9),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white),
+        boxShadow: const [
+          BoxShadow(
+              color: Color(0x1260758B), blurRadius: 24, offset: Offset(0, 12))
+        ],
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Icon(icon, color: color),
+        const Spacer(),
+        Text(label,
+            style: const TextStyle(
+                fontSize: 12,
+                color: Color(0xFF64748B),
+                fontWeight: FontWeight.w800)),
+        const SizedBox(height: 4),
+        Text(value,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w900)),
+      ]),
+    );
+  }
+}
+
+class DashboardTimeline extends StatelessWidget {
+  const DashboardTimeline(
+      {required this.title,
+      required this.docs,
+      required this.empty,
+      required this.builder,
+      super.key});
+  final String title;
+  final List<QueryDocumentSnapshot<Map<String, dynamic>>> docs;
+  final String empty;
+  final String Function(Map<String, dynamic>) builder;
+
+  @override
+  Widget build(BuildContext context) {
+    return GlassCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title,
+              style:
+                  const TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
+          const SizedBox(height: 12),
+          if (docs.isEmpty)
+            Text(empty, style: const TextStyle(color: Color(0xFF64748B))),
+          ...docs.take(4).map((doc) => Container(
+                width: double.infinity,
+                margin: const EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                    color: const Color(0xFFF8FAFC),
+                    borderRadius: BorderRadius.circular(12)),
+                child: Text(builder(doc.data()),
+                    maxLines: 3, overflow: TextOverflow.ellipsis),
+              )),
+        ],
+      ),
+    );
+  }
+}
+
+Widget chatBubble(BuildContext context, String text, bool fromUser) {
+  final width = MediaQuery.sizeOf(context).width * 0.82;
+  return Align(
+    alignment: fromUser ? Alignment.centerRight : Alignment.centerLeft,
+    child: Container(
+      constraints: BoxConstraints(maxWidth: width),
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: fromUser ? MediColors.primary : Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+            color: fromUser ? MediColors.primary : const Color(0xFFE2E8F0)),
+      ),
+      child: Text(text,
+          style: TextStyle(
+              color: fromUser ? Colors.white : const Color(0xFF334155),
+              height: 1.35)),
+    ),
+  );
+}
+
+Widget typingBubble() {
+  return Align(
+    alignment: Alignment.centerLeft,
+    child: Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: const Color(0xFFE2E8F0))),
+      child: const Row(mainAxisSize: MainAxisSize.min, children: [
+        SizedBox.square(
+            dimension: 18, child: CircularProgressIndicator(strokeWidth: 2)),
+        SizedBox(width: 12),
+        Text('MEDISENSE is typing...')
+      ]),
+    ),
+  );
+}
+
+Future<Map<String, dynamic>> postJson(
+    String path, Map<String, dynamic> body) async {
+  try {
+    final response = await http.post(Uri.parse('${apiBaseUrl()}$path'),
+        headers: {'Content-Type': 'application/json'}, body: jsonEncode(body));
+    final decoded =
+        response.body.isEmpty ? <String, dynamic>{} : jsonDecode(response.body);
+    final data = decoded is Map<String, dynamic>
+        ? decoded
+        : <String, dynamic>{'response': decoded.toString()};
+    if (response.statusCode >= 300) {
+      throw data['detail'] ?? data['error'] ?? 'Request failed';
+    }
+    return data;
+  } catch (error) {
+    final text = error.toString();
+    if (RegExp(
+            'SocketException|Connection refused|XMLHttpRequest|Failed host lookup|NetworkError',
+            caseSensitive: false)
+        .hasMatch(text)) {
+      throw 'The AI assistant is currently offline. Please start the backend service.';
+    }
+    rethrow;
+  }
+}
+
+Future<Map<String, dynamic>> uploadToCloudinary(PlatformFile file,
+    {required String kind}) async {
+  final user = FirebaseAuth.instance.currentUser!;
+  final token = await user.getIdToken();
+  final upload = http.MultipartRequest(
+      'POST', Uri.parse('${webBaseUrl()}/api/cloudinary-upload'));
+  upload.headers['Authorization'] = 'Bearer $token';
+  upload.fields['kind'] = kind;
+  upload.fields['userId'] = user.uid;
+  upload.fields['fileType'] = mimeForFile(file);
+  upload.files.add(
+      http.MultipartFile.fromBytes('file', file.bytes!, filename: file.name));
+  final uploaded = await upload.send();
+  final uploadText = await uploaded.stream.bytesToString();
+  final uploadBody = uploadText.isEmpty
+      ? <String, dynamic>{}
+      : jsonDecode(uploadText) as Map<String, dynamic>;
+  if (uploaded.statusCode >= 300) {
+    throw uploadBody['error'] ?? 'Cloudinary upload failed';
+  }
+  return uploadBody;
+}
+
+Future<Map<String, dynamic>> currentChatContext(String userId) async {
+  try {
+    final profile =
+        await FirebaseFirestore.instance.collection('users').doc(userId).get();
+    final reportsSnapshot = await FirebaseFirestore.instance
+        .collection('medical_reports')
+        .where('userId', isEqualTo: userId)
+        .limit(10)
+        .get();
+    final symptomSnapshot = await FirebaseFirestore.instance
+        .collection('symptom_checks')
+        .where('userId', isEqualTo: userId)
+        .limit(10)
+        .get();
+    final reports = sortedDocs(reportsSnapshot.docs);
+    final symptoms = sortedDocs(symptomSnapshot.docs);
+    return {
+      'profile': profile.data(),
+      'latestReport': reports.isEmpty ? null : reports.first.data(),
+      'latestSymptomCheck': symptoms.isEmpty ? null : symptoms.first.data(),
+    };
+  } catch (_) {
+    return {};
+  }
+}
+
+List<QueryDocumentSnapshot<Map<String, dynamic>>> sortedDocs(
+    List<QueryDocumentSnapshot<Map<String, dynamic>>> docs) {
+  final next = [...docs];
+  next.sort((a, b) => readDate(b).compareTo(readDate(a)));
+  return next;
+}
+
+DateTime readDate(QueryDocumentSnapshot<Map<String, dynamic>> doc) {
+  final value = doc.data()['createdAt'];
+  return value is Timestamp
+      ? value.toDate()
+      : DateTime.fromMillisecondsSinceEpoch(0);
+}
+
+String formatDate(Object? value) {
+  if (value is Timestamp) {
+    final date = value.toDate();
+    return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+  }
+  return 'saved';
+}
+
+int profileCompletion(Map<String, dynamic> profile) {
+  if (profile.isEmpty) return 0;
+  final fields = [
+    'fullName',
+    'age',
+    'gender',
+    'bloodGroup',
+    'height',
+    'weight',
+    'emergencyContact'
+  ];
+  final complete = fields
+      .where((field) =>
+          profile[field] != null && profile[field].toString().trim().isNotEmpty)
+      .length;
+  return ((complete / fields.length) * 100).round();
+}
+
+List<FlSpot> chartSpots(
+    List<QueryDocumentSnapshot<Map<String, dynamic>>> reports, String key,
+    {double divisor = 1}) {
+  final reversed = reports.reversed.toList();
+  final spots = <FlSpot>[];
+  for (var index = 0; index < reversed.length; index += 1) {
+    final value = toNullableNumber(reversed[index].data()[key]);
+    if (value != null) spots.add(FlSpot(index.toDouble(), value / divisor));
+  }
+  return spots.isEmpty ? [const FlSpot(0, 0)] : spots;
+}
+
+double? toNullableNumber(Object? value) {
+  if (value == null) return null;
+  if (value is num) return value.toDouble();
+  final parsed =
+      double.tryParse(value.toString().replaceAll(RegExp(r'[^0-9.]'), ''));
+  return parsed;
+}
+
+String confidenceText(Object? value) {
+  final number = toNullableNumber(value) ?? 0;
+  final percentage = number <= 1 ? (number * 100).round() : number.round();
+  return '$percentage%';
+}
+
+String mimeForFile(PlatformFile file) {
+  final extension = (file.extension ?? file.name.split('.').last).toLowerCase();
+  return switch (extension) {
+    'png' => 'image/png',
+    'jpg' || 'jpeg' => 'image/jpeg',
+    'webp' => 'image/webp',
+    'pdf' => 'application/pdf',
+    _ => 'application/octet-stream',
+  };
+}
+
+String markerStatus(String marker, double? value) {
+  if (value == null) return 'unknown';
+  final ranges = <String, (double, double)>{
+    'platelets': (150000, 450000),
+    'wbc': (4000, 11000),
+    'rbc': (4, 5.9),
+    'hemoglobin': (12, 17.5),
+    'hematocrit': (36, 52),
+    'mcv': (80, 100),
+    'mch': (27, 33),
+    'mchc': (32, 36),
+    'neutrophils': (40, 75),
+    'lymphocytes': (20, 45),
+  };
+  final range = ranges[marker];
+  if (range == null) return 'unknown';
+  if (value < range.$1) return 'low';
+  if (value > range.$2) return 'high';
+  return 'normal';
+}
+
+String friendlyAuthError(Object error) {
+  final text = error.toString().replaceFirst('Exception: ', '');
+  if (text.contains('network-request-failed')) {
+    return 'Network error. Check your connection and try again.';
+  }
+  if (text.contains('wrong-password') || text.contains('invalid-credential')) {
+    return 'Email or password is incorrect.';
+  }
+  if (text.contains('email-already-in-use')) {
+    return 'This email already has a MEDISENSE account.';
+  }
+  return text;
+}
+
+String friendlyBackendError(Object error, {required bool chatbot}) {
+  final text = error.toString().replaceFirst('Exception: ', '');
+  if (RegExp(
+          'offline|backend service|SocketException|Connection refused|XMLHttpRequest|Failed host lookup|NetworkError',
+          caseSensitive: false)
+      .hasMatch(text)) {
+    return 'The AI assistant is currently offline. Please start the backend service.';
+  }
+  if (chatbot &&
+      RegExp('failed to fetch|quota|provider|api key|groq|gemini|openrouter|rate-limit|insufficient',
+              caseSensitive: false)
+          .hasMatch(text)) {
+    return 'MEDISENSE could not answer right now. Please try again in a moment.';
+  }
+  return text.isEmpty ? 'Request failed. Please try again.' : text;
+}
+
+String labelFor(String key) {
+  const labels = {
+    'fullName': 'Full name',
+    'age': 'Age',
+    'gender': 'Gender',
+    'bloodGroup': 'Blood group',
+    'height': 'Height (cm)',
+    'weight': 'Weight (kg)',
+    'allergies': 'Allergies',
+    'existingConditions': 'Medical conditions',
+    'emergencyContact': 'Emergency contact',
+    'phone': 'Phone',
+    'address': 'Address',
+  };
+  return labels[key] ?? key;
+}
+
+const reportMarkers = [
+  'platelets',
+  'wbc',
+  'rbc',
+  'hemoglobin',
+  'hematocrit',
+  'mcv',
+  'mch',
+  'mchc',
+  'neutrophils',
+  'lymphocytes'
+];

@@ -9,6 +9,7 @@ import os
 import pickle
 import shutil
 import urllib.request
+import urllib.parse
 import warnings
 from pathlib import Path
 
@@ -413,7 +414,7 @@ def get_firestore_client():
     return _firestore_client
 
 
-def save_chatbot_message(payload: ChatPayload, response: str, provider: str) -> Dict[str, Any]:
+def save_chatbot_message(payload: ChatPayload, response: str, provider: str, fallback: bool) -> Dict[str, Any]:
     if not payload.userId:
         return {"savedToFirestore": False}
 
@@ -430,7 +431,7 @@ def save_chatbot_message(payload: ChatPayload, response: str, provider: str) -> 
             "user_message": payload.message,
             "ai_response": response,
             "provider": provider,
-            "fallback": False,
+            "fallback": fallback,
             "healthContext": context,
             "createdAt": firestore.SERVER_TIMESTAMP,
             "updatedAt": firestore.SERVER_TIMESTAMP,
@@ -440,6 +441,114 @@ def save_chatbot_message(payload: ChatPayload, response: str, provider: str) -> 
     except Exception as exc:
         logger.warning("Unable to save chatbot message in Firestore", extra={"error": str(exc)[:240]})
         return {"savedToFirestore": False}
+
+
+def configured_chat_provider() -> str:
+    if os.getenv("OPENAI_API_KEY"):
+        return "openai"
+    if os.getenv("GEMINI_API_KEY"):
+        return "gemini"
+    return "local_rules"
+
+
+def external_chat_enabled() -> bool:
+    return configured_chat_provider() != "local_rules"
+
+
+def chat_system_prompt(context: Dict[str, Any]) -> str:
+    context_preview = json.dumps(context or {}, default=str)[:1800]
+    return (
+        "You are MEDISENSE, a cautious healthcare guidance assistant. "
+        "Give concise, safe, non-diagnostic guidance for fever, dengue, malaria, typhoid, flu, CBC values, report values, tests, precautions, and when to see a doctor. "
+        "Do not prescribe medicine. Encourage clinician review for severe, persistent, or worsening symptoms. "
+        f"Available user health context: {context_preview}"
+    )
+
+
+def try_external_chatbot(message: str, context: Dict[str, Any], history: List[Dict[str, str]]) -> Optional[Dict[str, Any]]:
+    provider = configured_chat_provider()
+    if provider == "local_rules":
+        return None
+    try:
+        result: Optional[Dict[str, Any]] = None
+        if provider == "openai":
+            result = try_openai_chatbot(message, context, history)
+        elif provider == "gemini":
+            result = try_gemini_chatbot(message, context, history)
+        if result:
+            return result
+    except Exception as exc:
+        logger.info("External chatbot provider failed; using local fallback.", extra={"provider": provider, "error": str(exc)[:180]})
+    local = build_local_chatbot_reply(message, context=context, history=history)
+    local["fallback"] = True
+    local["provider"] = "local_rules"
+    local["externalProviderAttempted"] = provider
+    return local
+
+
+def try_openai_chatbot(message: str, context: Dict[str, Any], history: List[Dict[str, str]]) -> Optional[Dict[str, Any]]:
+    api_key = os.getenv("OPENAI_API_KEY")
+    if not api_key:
+        return None
+    messages = [{"role": "system", "content": chat_system_prompt(context)}]
+    for item in history[-8:]:
+        role = item.get("role")
+        if role in {"user", "assistant"} and item.get("content"):
+            messages.append({"role": role, "content": item["content"][:900]})
+    messages.append({"role": "user", "content": message})
+    body = json.dumps({
+        "model": os.getenv("OPENAI_CHAT_MODEL", "gpt-4o-mini"),
+        "messages": messages,
+        "temperature": 0.25,
+        "max_tokens": 520,
+    }).encode("utf-8")
+    request = urllib.request.Request(
+        "https://api.openai.com/v1/chat/completions",
+        data=body,
+        headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+        method="POST",
+    )
+    with urllib.request.urlopen(request, timeout=18) as response:
+        data = json.loads(response.read().decode("utf-8"))
+    text = data.get("choices", [{}])[0].get("message", {}).get("content", "").strip()
+    if not text:
+        return None
+    return {"response": ensure_disclaimer(text), "provider": "openai", "fallback": False}
+
+
+def try_gemini_chatbot(message: str, context: Dict[str, Any], history: List[Dict[str, str]]) -> Optional[Dict[str, Any]]:
+    api_key = os.getenv("GEMINI_API_KEY")
+    if not api_key:
+        return None
+    model = urllib.parse.quote(os.getenv("GEMINI_MODEL", "gemini-2.0-flash"), safe="")
+    prompt = chat_system_prompt(context)
+    for item in history[-8:]:
+        prompt += f"\n{item.get('role', 'user')}: {str(item.get('content', ''))[:900]}"
+    prompt += f"\nuser: {message}"
+    body = json.dumps({
+        "contents": [{"role": "user", "parts": [{"text": prompt}]}],
+        "generationConfig": {"temperature": 0.25, "maxOutputTokens": 520},
+    }).encode("utf-8")
+    request = urllib.request.Request(
+        f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}",
+        data=body,
+        headers={"Content-Type": "application/json"},
+        method="POST",
+    )
+    with urllib.request.urlopen(request, timeout=18) as response:
+        data = json.loads(response.read().decode("utf-8"))
+    parts = data.get("candidates", [{}])[0].get("content", {}).get("parts", [])
+    text = "\n".join(part.get("text", "") for part in parts).strip()
+    if not text:
+        return None
+    return {"response": ensure_disclaimer(text), "provider": "gemini", "fallback": False}
+
+
+def ensure_disclaimer(text: str) -> str:
+    disclaimer = "This is AI-based guidance and not a replacement for a doctor."
+    if disclaimer.lower() in text.lower():
+        return text
+    return f"{text}\n\n{disclaimer}"
 
 
 @app.get("/health")
@@ -457,8 +566,8 @@ async def health():
             "tesseract_cmd": TESSERACT_CMD,
         },
         "chatbot": {
-            "provider": "local_rules",
-            "external_apis_enabled": False,
+            "provider": configured_chat_provider(),
+            "external_apis_enabled": external_chat_enabled(),
             "firestore_backend_save_available": get_firestore_client() is not None,
         },
     }
@@ -530,7 +639,8 @@ async def ocr_report(payload: OcrUrlPayload):
     except HTTPException:
         raise
     except Exception as exc:
-        raise HTTPException(status_code=500, detail=f"OCR processing failed: {exc}") from exc
+        logger.warning("OCR URL processing failed", extra={"error": str(exc)[:240]})
+        raise HTTPException(status_code=500, detail="OCR processing failed. Check that the report file is reachable and readable, then try again.") from exc
 
 
 @app.post("/ocr")
@@ -544,7 +654,8 @@ async def process_report(file: UploadFile = File(...)):
     except HTTPException:
         raise
     except Exception as exc:
-        raise HTTPException(status_code=500, detail=f"OCR processing failed: {exc}") from exc
+        logger.warning("OCR upload processing failed", extra={"error": str(exc)[:240]})
+        raise HTTPException(status_code=500, detail="OCR processing failed. Upload a clearer image or PDF, then try again.") from exc
 
 
 @app.post("/chatbot")
@@ -553,8 +664,10 @@ async def chatbot(payload: ChatPayload):
         raise HTTPException(status_code=422, detail="Message is required.")
     context = payload.context or payload.healthContext or {}
     history = [{"role": item.role, "content": item.content} for item in payload.history]
-    result = build_local_chatbot_reply(payload.message, context=context, history=history)
-    save_result = save_chatbot_message(payload, result["response"], result["provider"])
+    result = try_external_chatbot(payload.message, context=context, history=history)
+    if result is None:
+        result = build_local_chatbot_reply(payload.message, context=context, history=history)
+    save_result = save_chatbot_message(payload, result["response"], result["provider"], bool(result.get("fallback")))
     return {**result, **save_result}
 
 

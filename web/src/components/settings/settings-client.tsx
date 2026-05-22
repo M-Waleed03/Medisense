@@ -66,7 +66,7 @@ export function SettingsClient() {
 
   return (
     <div className="grid gap-5 lg:grid-cols-2">
-      {error && <Card className="border-red-100 bg-red-50 text-sm text-red-700 lg:col-span-2">Settings could not be loaded. Apply the Supabase schema migration and try again.</Card>}
+      {error && <Card className="border-red-100 bg-red-50 text-sm text-red-700 lg:col-span-2">Settings could not be loaded from Firestore. Sign in again, check Firebase rules, and try again.</Card>}
       <Card>
         <UserRound className="mb-4 h-5 w-5 text-primary" />
         <h2 className="text-lg font-bold">Account settings</h2>

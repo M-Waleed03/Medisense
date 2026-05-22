@@ -44,7 +44,7 @@ async function mlFetch<T>(path: string, body?: unknown, init?: RequestInit): Pro
   } catch (error) {
     throw new Error(
       path.includes("chat")
-        ? "MEDISENSE is offline right now. Please start the local healthcare service and try again."
+        ? "The AI assistant is currently offline. Please start the backend service."
         : "AI service is temporarily unavailable. Please start the backend server."
     );
   }
@@ -439,7 +439,7 @@ async function responseError(response: Response, fallback: string, path?: string
     const detail = data.error ?? data.detail ?? fallback;
     if (path?.includes("chat")) return chatErrorMessage(detail);
     if (typeof detail === "string" && detail.toLowerCase().includes("failed to fetch")) {
-      return "AI assistant is temporarily unavailable. Please start the backend server.";
+      return path?.includes("chat") ? "The AI assistant is currently offline. Please start the backend service." : "AI service is temporarily unavailable. Please start the backend server.";
     }
     if (typeof detail === "string" && (detail.includes("insufficient_quota") || detail.toLowerCase().includes("quota exceeded") || detail.includes("rate-limit"))) {
       return "MEDISENSE could not complete that request right now. Please try again in a moment.";
@@ -454,7 +454,10 @@ async function responseError(response: Response, fallback: string, path?: string
 function chatErrorMessage(value: unknown) {
   const text = typeof value === "string" ? value : "";
   if (!text.trim()) return "MEDISENSE could not answer right now. Please try again in a moment.";
-  if (/failed to fetch|quota|provider|api key|groq|gemini|openrouter|rate-limit|insufficient/i.test(text)) {
+  if (/failed to fetch|connection refused|network|backend/i.test(text)) {
+    return "The AI assistant is currently offline. Please start the backend service.";
+  }
+  if (/quota|provider|api key|groq|gemini|openrouter|rate-limit|insufficient/i.test(text)) {
     return "MEDISENSE could not answer right now. Please try again in a moment.";
   }
   return text;

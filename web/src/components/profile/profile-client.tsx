@@ -54,7 +54,7 @@ export function ProfileClient() {
   }
 
   if (isLoading) return <Card className="h-72 max-w-4xl animate-pulse" />;
-  if (error) return <Card className="max-w-4xl text-sm text-red-700">Profile could not be loaded. Apply the Supabase profiles migration, sign in again, and refresh.</Card>;
+  if (error) return <Card className="max-w-4xl text-sm text-red-700">Profile could not be loaded from Firestore. Sign in again, check Firebase rules, and refresh.</Card>;
 
   return (
     <Card className="max-w-5xl">

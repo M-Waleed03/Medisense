@@ -30,6 +30,7 @@ export type ReportRecord = {
   lymphocytes?: number | null;
   extracted_values?: Record<string, unknown>;
   diagnosis: string;
+  riskLevel?: string;
   flags?: ReportFlag[];
   created_at: string;
 };

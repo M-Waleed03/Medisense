@@ -12,11 +12,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:medisense_mobile/main.dart';
 
 void main() {
-  testWidgets('MEDISENSE app builds and contains the MaterialApp shell', (WidgetTester tester) async {
+  testWidgets('MEDISENSE app builds and contains the MaterialApp shell',
+      (WidgetTester tester) async {
     await tester.pumpWidget(const ProviderScope(child: MediSenseApp()));
 
     expect(find.byType(MaterialApp), findsOneWidget);
     expect(find.byType(Scaffold), findsWidgets);
   });
 }
-

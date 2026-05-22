@@ -11,7 +11,7 @@ type History = { symptoms: SymptomRecord[]; reports: ReportRecord[]; messages: C
 export function HistoryClient() {
   const { data, isLoading, error } = useQuery({ queryKey: ["history-page"], queryFn: () => apiGet<History>("/history") });
   if (isLoading) return <Card className="h-40 animate-pulse" />;
-  if (error) return <Card className="text-sm text-red-700">History could not be loaded. Sign in again or apply the Supabase schema migration.</Card>;
+  if (error) return <Card className="text-sm text-red-700">History could not be loaded from Firestore. Sign in again or check Firebase rules.</Card>;
   const reports = data?.reports ?? [];
   const trendData = reports.slice(0, 12).reverse().map((item, index) => ({
     name: `R${index + 1}`,

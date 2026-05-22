@@ -65,7 +65,7 @@ export function ChatbotClient() {
       </div>
       <div className="flex-1 space-y-4 overflow-y-auto py-5">
         {loadError && <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700">Chat history could not be loaded. You can still try sending a new message after checking your connection.</p>}
-        {(data?.messages ?? []).map((item) => (
+        {[...(data?.messages ?? [])].reverse().map((item) => (
           <div key={item.id} className="space-y-2">
             <div className="ml-auto max-w-[82%] rounded-lg bg-primary px-4 py-3 text-sm text-white">{item.user_message}</div>
             <div className="max-w-[82%] whitespace-pre-line rounded-lg bg-white/80 px-4 py-3 text-sm leading-6 text-slate-700">
@@ -103,6 +103,9 @@ export function ChatbotClient() {
 
 function friendlyChatError(error: unknown) {
   const text = error instanceof Error ? error.message : "";
+  if (/offline|backend server|backend service|connection refused|network/i.test(text)) {
+    return "The AI assistant is currently offline. Please start the backend service.";
+  }
   if (/failed to fetch|quota|provider|api key|groq|gemini|openrouter|rate-limit|insufficient/i.test(text)) {
     return "MEDISENSE could not answer right now. Please try again in a moment.";
   }

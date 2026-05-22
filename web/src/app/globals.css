@@ -47,3 +47,26 @@ select {
     linear-gradient(90deg, rgba(20, 184, 166, 0.08) 1px, transparent 1px);
   background-size: 36px 36px;
 }
+
+.heartbeat-line {
+  stroke-dasharray: 720;
+  stroke-dashoffset: 720;
+  animation: heartbeat-trace 2.4s ease-in-out infinite;
+  filter: drop-shadow(0 10px 22px rgba(59, 130, 246, 0.22));
+}
+
+@keyframes heartbeat-trace {
+  0% {
+    stroke-dashoffset: 720;
+    opacity: 0.3;
+  }
+  48%,
+  72% {
+    stroke-dashoffset: 0;
+    opacity: 1;
+  }
+  100% {
+    stroke-dashoffset: -720;
+    opacity: 0.3;
+  }
+}

@@ -21,6 +21,7 @@ export async function POST(request: Request) {
   const file = form.get("file");
   const kind = String(form.get("kind") ?? "report");
   const userId = String(form.get("userId") ?? "unknown").replace(/[^\w-]/g, "");
+  const declaredType = String(form.get("fileType") ?? "");
 
   if (!(file instanceof File)) {
     return NextResponse.json({ error: "A file is required." }, { status: 400 });
@@ -28,7 +29,8 @@ export async function POST(request: Request) {
 
   const isProfile = kind === "profile";
   const allowed = isProfile ? ["image/png", "image/jpeg", "image/webp"] : ["image/png", "image/jpeg", "image/webp", "application/pdf"];
-  if (!allowed.includes(file.type)) {
+  const fileType = file.type === "application/octet-stream" && declaredType ? declaredType : file.type;
+  if (!allowed.includes(fileType)) {
     return NextResponse.json({ error: isProfile ? "Profile image must be PNG, JPG, or WEBP." : "Report must be PNG, JPG, WEBP, or PDF." }, { status: 415 });
   }
 
