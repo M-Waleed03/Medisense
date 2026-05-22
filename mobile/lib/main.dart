@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:ui';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:file_picker/file_picker.dart';
@@ -82,16 +83,40 @@ class MediSenseApp extends StatelessWidget {
           seedColor: MediColors.primary,
           primary: MediColors.primary,
           secondary: MediColors.secondary,
-          surface: Colors.white,
+          tertiary: MediColors.accent,
+          surface: const Color(0xFFF8FBFF),
         ),
         scaffoldBackgroundColor: MediColors.background,
+        filledButtonTheme: FilledButtonThemeData(
+          style: FilledButton.styleFrom(
+            minimumSize: const Size.fromHeight(52),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+            textStyle:
+                const TextStyle(fontWeight: FontWeight.w900, fontSize: 15),
+          ),
+        ),
+        outlinedButtonTheme: OutlinedButtonThemeData(
+          style: OutlinedButton.styleFrom(
+            minimumSize: const Size.fromHeight(48),
+            foregroundColor: MediColors.ink,
+            side: const BorderSide(color: Color(0xCCE2E8F0)),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+            textStyle: const TextStyle(fontWeight: FontWeight.w800),
+          ),
+        ),
         inputDecorationTheme: InputDecorationTheme(
           filled: true,
-          fillColor: Colors.white,
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+          fillColor: Colors.white.withValues(alpha: 0.78),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
           enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+              borderRadius: BorderRadius.circular(16),
+              borderSide: const BorderSide(color: Color(0xCCE2E8F0))),
+          focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide:
+                  const BorderSide(color: MediColors.primary, width: 1.4)),
         ),
       ),
       home: const AuthGate(),
@@ -102,9 +127,12 @@ class MediSenseApp extends StatelessWidget {
 class MediColors {
   static const primary = Color(0xFF2563EB);
   static const secondary = Color(0xFF14B8A6);
-  static const accent = Color(0xFF8B5CF6);
-  static const background = Color(0xFFF8FAFC);
-  static const text = Color(0xFF0F172A);
+  static const accent = Color(0xFF7C3AED);
+  static const cyan = Color(0xFF06B6D4);
+  static const background = Color(0xFFF6FBFF);
+  static const text = Color(0xFF07111F);
+  static const ink = Color(0xFF07111F);
+  static const muted = Color(0xFF536276);
 }
 
 class AuthGate extends StatelessWidget {
@@ -140,19 +168,36 @@ class SplashScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
+    return Scaffold(
       body: PremiumBackground(
         child: Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              DoctorMark(size: 72),
-              SizedBox(height: 18),
-              Text('Starting MEDISENSE',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900)),
-              SizedBox(height: 14),
-              CircularProgressIndicator(),
-            ],
+          child: TweenAnimationBuilder<double>(
+            tween: Tween(begin: 0.82, end: 1),
+            duration: const Duration(milliseconds: 900),
+            curve: Curves.easeOutCubic,
+            builder: (context, scale, child) => Transform.scale(
+              scale: scale,
+              child: child,
+            ),
+            child: const GlassCard(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  DoctorMark(size: 82),
+                  SizedBox(height: 18),
+                  Text('MEDISENSE',
+                      style:
+                          TextStyle(fontSize: 30, fontWeight: FontWeight.w900)),
+                  SizedBox(height: 6),
+                  Text('AI doctor workspace initializing',
+                      style: TextStyle(
+                          color: MediColors.muted,
+                          fontWeight: FontWeight.w700)),
+                  SizedBox(height: 18),
+                  LinearProgressIndicator(minHeight: 6),
+                ],
+              ),
+            ),
           ),
         ),
       ),
@@ -533,52 +578,110 @@ class _MobileShellState extends State<MobileShell> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(labels[index],
-            style: const TextStyle(fontWeight: FontWeight.w900)),
-        backgroundColor: Colors.white.withValues(alpha: 0.78),
-        actions: [
-          IconButton(
-              onPressed: () => FirebaseAuth.instance.signOut(),
-              icon: const Icon(Icons.logout),
-              tooltip: 'Logout'),
-        ],
+      extendBody: true,
+      body: PremiumBackground(
+        child: SafeArea(
+          bottom: false,
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 10, 16, 8),
+                child: GlassCard(
+                  margin: EdgeInsets.zero,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  child: Row(children: [
+                    const DoctorMark(size: 42),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text('MEDISENSE',
+                                style: TextStyle(
+                                    fontWeight: FontWeight.w900,
+                                    letterSpacing: 0.8)),
+                            Text(labels[index],
+                                style: const TextStyle(
+                                    color: MediColors.muted,
+                                    fontWeight: FontWeight.w700)),
+                          ]),
+                    ),
+                    IconButton(
+                        onPressed: () => FirebaseAuth.instance.signOut(),
+                        icon: const Icon(Icons.logout),
+                        tooltip: 'Logout'),
+                  ]),
+                ),
+              ),
+              Expanded(
+                child: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 360),
+                  switchInCurve: Curves.easeOutCubic,
+                  switchOutCurve: Curves.easeInCubic,
+                  child: KeyedSubtree(key: ValueKey(index), child: pages[index]),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
-      body: PremiumBackground(child: pages[index]),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: index,
-        labelBehavior: NavigationDestinationLabelBehavior.onlyShowSelected,
-        onDestinationSelected: (value) => setState(() => index = value),
-        destinations: const [
-          NavigationDestination(
-              icon: Icon(Icons.dashboard_outlined),
-              selectedIcon: Icon(Icons.dashboard),
-              label: 'Home'),
-          NavigationDestination(
-              icon: Icon(Icons.monitor_heart_outlined),
-              selectedIcon: Icon(Icons.monitor_heart),
-              label: 'Symptoms'),
-          NavigationDestination(
-              icon: Icon(Icons.document_scanner_outlined),
-              selectedIcon: Icon(Icons.document_scanner),
-              label: 'Reports'),
-          NavigationDestination(
-              icon: Icon(Icons.smart_toy_outlined),
-              selectedIcon: Icon(Icons.smart_toy),
-              label: 'Chat'),
-          NavigationDestination(
-              icon: Icon(Icons.history_outlined),
-              selectedIcon: Icon(Icons.history),
-              label: 'History'),
-          NavigationDestination(
-              icon: Icon(Icons.person_outline),
-              selectedIcon: Icon(Icons.person),
-              label: 'Profile'),
-          NavigationDestination(
-              icon: Icon(Icons.settings_outlined),
-              selectedIcon: Icon(Icons.settings),
-              label: 'Settings'),
-        ],
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => setState(() => index = 3),
+        backgroundColor: MediColors.accent,
+        foregroundColor: Colors.white,
+        child: const Icon(Icons.smart_toy_outlined),
+      ),
+      bottomNavigationBar: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(28),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 22, sigmaY: 22),
+              child: NavigationBar(
+                selectedIndex: index,
+                height: 72,
+                backgroundColor: Colors.white.withValues(alpha: 0.78),
+                indicatorColor: const Color(0xFFEFF6FF),
+                labelBehavior:
+                    NavigationDestinationLabelBehavior.onlyShowSelected,
+                onDestinationSelected: (value) => setState(() => index = value),
+                destinations: const [
+                  NavigationDestination(
+                      icon: Icon(Icons.dashboard_outlined),
+                      selectedIcon: Icon(Icons.dashboard),
+                      label: 'Home'),
+                  NavigationDestination(
+                      icon: Icon(Icons.monitor_heart_outlined),
+                      selectedIcon: Icon(Icons.monitor_heart),
+                      label: 'Symptoms'),
+                  NavigationDestination(
+                      icon: Icon(Icons.document_scanner_outlined),
+                      selectedIcon: Icon(Icons.document_scanner),
+                      label: 'Reports'),
+                  NavigationDestination(
+                      icon: Icon(Icons.smart_toy_outlined),
+                      selectedIcon: Icon(Icons.smart_toy),
+                      label: 'Chat'),
+                  NavigationDestination(
+                      icon: Icon(Icons.history_outlined),
+                      selectedIcon: Icon(Icons.history),
+                      label: 'History'),
+                  NavigationDestination(
+                      icon: Icon(Icons.person_outline),
+                      selectedIcon: Icon(Icons.person),
+                      label: 'Profile'),
+                  NavigationDestination(
+                      icon: Icon(Icons.settings_outlined),
+                      selectedIcon: Icon(Icons.settings),
+                      label: 'Settings'),
+                ],
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -631,6 +734,31 @@ class DashboardScreen extends StatelessWidget {
                             title: 'AI healthcare overview',
                             subtitle:
                                 'Live Firestore data from your authenticated MEDISENSE account.'),
+                        GlassCard(
+                          child: Row(children: [
+                            const DoctorMark(size: 58),
+                            const SizedBox(width: 14),
+                            Expanded(
+                              child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                        'Hello ${profile['fullName'] ?? FirebaseAuth.instance.currentUser?.email?.split('@').first ?? 'there'}',
+                                        style: const TextStyle(
+                                            fontSize: 22,
+                                            fontWeight: FontWeight.w900,
+                                            color: MediColors.ink)),
+                                    const SizedBox(height: 6),
+                                    const Text(
+                                        'Your AI care cockpit is tracking reports, symptoms, chat context, and profile completeness.',
+                                        style: TextStyle(
+                                            color: MediColors.muted,
+                                            height: 1.35,
+                                            fontWeight: FontWeight.w600)),
+                                  ]),
+                            ),
+                          ]),
+                        ),
                         GridView.count(
                           crossAxisCount:
                               MediaQuery.sizeOf(context).width > 720 ? 4 : 2,
@@ -902,6 +1030,39 @@ class _SymptomScreenState extends State<SymptomScreen> {
             subtitle:
                 'Detailed disease-category intake with Firestore history sync.'),
         GlassCard(
+          child: Row(children: [
+            Expanded(
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('AI body scan',
+                        style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.w900,
+                            color: MediColors.ink)),
+                    const SizedBox(height: 6),
+                    Text(
+                        '${selected.length} active symptom signals selected across fever, digestive, respiratory, exposure, and risk layers.',
+                        style: const TextStyle(
+                            color: MediColors.muted, height: 1.35)),
+                  ]),
+            ),
+            SizedBox(
+              width: 86,
+              height: 86,
+              child: Stack(alignment: Alignment.center, children: [
+                CircularProgressIndicator(
+                    value: (selected.length / 10).clamp(0.08, 1),
+                    strokeWidth: 8,
+                    backgroundColor: const Color(0xFFEFF6FF)),
+                Text(selected.length.toString(),
+                    style: const TextStyle(
+                        fontSize: 24, fontWeight: FontWeight.w900)),
+              ]),
+            ),
+          ]),
+        ),
+        GlassCard(
           child: Column(
             children: [
               Row(children: [
@@ -965,6 +1126,12 @@ class _SymptomScreenState extends State<SymptomScreen> {
                       children: entry.value
                           .map((item) => FilterChip(
                               selected: selected.contains(item),
+                              selectedColor: const Color(0xFFEFF6FF),
+                              checkmarkColor: MediColors.primary,
+                              side: BorderSide(
+                                  color: selected.contains(item)
+                                      ? MediColors.primary
+                                      : const Color(0xCCE2E8F0)),
                               label: Text(item),
                               onSelected: (_) => setState(() =>
                                   selected.contains(item)
@@ -1107,14 +1274,33 @@ class _ReportsScreenState extends State<ReportsScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Icon(Icons.document_scanner_outlined,
-                color: MediColors.primary, size: 36),
-            const SizedBox(height: 12),
-            const Text('Upload CBC report',
-                style: TextStyle(fontSize: 19, fontWeight: FontWeight.w900)),
+            const Row(children: [
+              DoctorMark(size: 48),
+              SizedBox(width: 12),
+              Expanded(
+                child: Text('Holographic OCR scanner',
+                    style:
+                        TextStyle(fontSize: 21, fontWeight: FontWeight.w900)),
+              ),
+            ]),
             const SizedBox(height: 8),
             const Text(
-                'PDF and image reports are signed by the web API route so Cloudinary secrets stay off the device.'),
+                'PDF and image reports are signed by the web API route so Cloudinary secrets stay off the device.',
+                style: TextStyle(color: MediColors.muted, height: 1.35)),
+            const SizedBox(height: 14),
+            Container(
+              height: 118,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(22),
+                border: Border.all(color: const Color(0x993B82F6)),
+                gradient: const LinearGradient(
+                    colors: [Color(0xFFEFF6FF), Color(0xFFE6FFFB)]),
+              ),
+              child: const Center(
+                child: Icon(Icons.document_scanner_outlined,
+                    color: MediColors.primary, size: 46),
+              ),
+            ),
             const SizedBox(height: 14),
             SizedBox(
                 width: double.infinity,
@@ -1229,6 +1415,25 @@ class _ChatScreenState extends State<ChatScreen> {
                   title: 'AI chatbot',
                   subtitle:
                       'Provider-ready guidance with local medical fallback.'),
+              const GlassCard(
+                child: Row(children: [
+                  DoctorMark(size: 56),
+                  SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Medi AI assistant',
+                              style: TextStyle(
+                                  fontSize: 20, fontWeight: FontWeight.w900)),
+                          SizedBox(height: 6),
+                          Text('Floating clinical chat with profile and report context.',
+                              style: TextStyle(
+                                  color: MediColors.muted, height: 1.35)),
+                        ]),
+                  ),
+                ]),
+              ),
               Wrap(
                   spacing: 8,
                   runSpacing: 8,
@@ -1629,17 +1834,89 @@ class PremiumBackground extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Color(0xFFFFFFFF), Color(0xFFF8FAFC), Color(0xFFEFF6FF)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        const DecoratedBox(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                Color(0xFFFFFFFF),
+                Color(0xFFF6FBFF),
+                Color(0xFFEAF7FF)
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
         ),
-      ),
-      child: child,
+        Positioned(
+          top: -90,
+          right: -80,
+          child: _LightField(
+              size: 260, colors: [MediColors.primary, MediColors.cyan]),
+        ),
+        Positioned(
+          bottom: -120,
+          left: -90,
+          child: _LightField(
+              size: 300, colors: [MediColors.secondary, MediColors.accent]),
+        ),
+        CustomPaint(painter: _NeuralGridPainter()),
+        child,
+      ],
     );
   }
+}
+
+class _LightField extends StatelessWidget {
+  const _LightField({required this.size, required this.colors});
+  final double size;
+  final List<Color> colors;
+
+  @override
+  Widget build(BuildContext context) {
+    return IgnorePointer(
+      child: ImageFiltered(
+        imageFilter: ImageFilter.blur(sigmaX: 42, sigmaY: 42),
+        child: Container(
+          width: size,
+          height: size * 0.72,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(80),
+            gradient: LinearGradient(
+              colors: [
+                colors.first.withValues(alpha: 0.22),
+                colors.last.withValues(alpha: 0.10),
+                Colors.transparent,
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _NeuralGridPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = const Color(0x123B82F6)
+      ..strokeWidth = 1;
+    const gap = 34.0;
+    for (double x = 0; x < size.width; x += gap) {
+      canvas.drawLine(Offset(x, 0), Offset(x, size.height), paint);
+    }
+    for (double y = 0; y < size.height; y += gap) {
+      canvas.drawLine(Offset(0, y), Offset(size.width, y), paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
 class DoctorMark extends StatelessWidget {
@@ -1652,40 +1929,65 @@ class DoctorMark extends StatelessWidget {
       width: size,
       height: size,
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.9),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.white),
+        gradient: const LinearGradient(
+            colors: [MediColors.primary, MediColors.cyan, MediColors.secondary],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight),
+        borderRadius: BorderRadius.circular(size * 0.28),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.8)),
         boxShadow: const [
           BoxShadow(
-              color: Color(0x223B82F6), blurRadius: 34, offset: Offset(0, 18))
+              color: Color(0x333B82F6), blurRadius: 34, offset: Offset(0, 18))
         ],
       ),
-      child: const Icon(Icons.medical_services_outlined,
-          color: MediColors.primary),
+      child: const Icon(Icons.monitor_heart_outlined, color: Colors.white),
     );
   }
 }
 
 class GlassCard extends StatelessWidget {
-  const GlassCard({required this.child, super.key});
+  const GlassCard(
+      {required this.child,
+      this.margin = const EdgeInsets.only(bottom: 14),
+      this.padding = const EdgeInsets.all(18),
+      super.key});
   final Widget child;
+  final EdgeInsetsGeometry margin;
+  final EdgeInsetsGeometry padding;
 
   @override
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      margin: const EdgeInsets.only(bottom: 14),
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.88),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white),
-        boxShadow: const [
-          BoxShadow(
-              color: Color(0x1560758B), blurRadius: 30, offset: Offset(0, 16))
-        ],
+      margin: margin,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(24),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 22, sigmaY: 22),
+          child: Container(
+            padding: padding,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  Colors.white.withValues(alpha: 0.88),
+                  const Color(0xFFF1F8FF).withValues(alpha: 0.68),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.86)),
+              boxShadow: const [
+                BoxShadow(
+                    color: Color(0x1F0F172A),
+                    blurRadius: 34,
+                    offset: Offset(0, 18))
+              ],
+            ),
+            child: child,
+          ),
+        ),
       ),
-      child: child,
     );
   }
 }
@@ -1711,12 +2013,15 @@ class SectionTitle extends StatelessWidget {
           const SizedBox(height: 4),
           Text(title,
               style: const TextStyle(
-                  fontSize: 28,
+                  fontSize: 30,
                   fontWeight: FontWeight.w900,
                   color: MediColors.text)),
           const SizedBox(height: 6),
           Text(subtitle,
-              style: const TextStyle(color: Color(0xFF64748B), height: 1.4)),
+              style: const TextStyle(
+                  color: MediColors.muted,
+                  height: 1.45,
+                  fontWeight: FontWeight.w600)),
         ],
       ),
     );
@@ -1751,12 +2056,19 @@ class MetricTile extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.9),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white),
+        gradient: LinearGradient(
+          colors: [
+            Colors.white.withValues(alpha: 0.9),
+            color.withValues(alpha: 0.08),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.86)),
         boxShadow: const [
           BoxShadow(
-              color: Color(0x1260758B), blurRadius: 24, offset: Offset(0, 12))
+              color: Color(0x1A0F172A), blurRadius: 26, offset: Offset(0, 14))
         ],
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -1806,8 +2118,9 @@ class DashboardTimeline extends StatelessWidget {
                 margin: const EdgeInsets.only(bottom: 8),
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                    color: const Color(0xFFF8FAFC),
-                    borderRadius: BorderRadius.circular(12)),
+                    color: Colors.white.withValues(alpha: 0.76),
+                    border: Border.all(color: const Color(0xCCE2E8F0)),
+                    borderRadius: BorderRadius.circular(16)),
                 child: Text(builder(doc.data()),
                     maxLines: 3, overflow: TextOverflow.ellipsis),
               )),
@@ -1826,10 +2139,20 @@ Widget chatBubble(BuildContext context, String text, bool fromUser) {
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: fromUser ? MediColors.primary : Colors.white,
-        borderRadius: BorderRadius.circular(14),
+        gradient: fromUser
+            ? const LinearGradient(
+                colors: [MediColors.primary, MediColors.cyan],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight)
+            : null,
+        color: fromUser ? null : Colors.white.withValues(alpha: 0.84),
+        borderRadius: BorderRadius.circular(18),
         border: Border.all(
-            color: fromUser ? MediColors.primary : const Color(0xFFE2E8F0)),
+            color: fromUser ? MediColors.primary : const Color(0xCCE2E8F0)),
+        boxShadow: const [
+          BoxShadow(
+              color: Color(0x120F172A), blurRadius: 18, offset: Offset(0, 10))
+        ],
       ),
       child: Text(text,
           style: TextStyle(
