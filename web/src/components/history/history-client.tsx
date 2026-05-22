@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { apiGet } from "@/lib/api";
 import { Card } from "@/components/ui/card";
+import { HoloPanel, SignalBadge } from "@/components/ui/premium";
 import type { ChatMessage, ReportRecord, SymptomRecord } from "@/types/medisense";
 
 type History = { symptoms: SymptomRecord[]; reports: ReportRecord[]; messages: ChatMessage[] };
@@ -21,8 +22,9 @@ export function HistoryClient() {
 
   return (
     <div className="space-y-5">
-      <Card>
-        <h2 className="text-lg font-bold">Health analytics timeline</h2>
+      <HoloPanel>
+        <SignalBadge>Longitudinal health graph</SignalBadge>
+        <h2 className="mt-4 text-3xl font-black text-ink">Health analytics timeline</h2>
         {trendData.length > 0 ? (
           <div className="mt-4 h-72">
             <ResponsiveContainer width="100%" height="100%">
@@ -38,7 +40,7 @@ export function HistoryClient() {
         ) : (
           <p className="mt-4 text-sm text-slate-500">No report trends yet. Upload CBC reports to see live analytics.</p>
         )}
-      </Card>
+      </HoloPanel>
       <div className="grid gap-5 lg:grid-cols-3">
         <Timeline title="Previous diseases" items={(data?.symptoms ?? []).map((item) => `${item.predicted_disease} - ${Math.round(item.confidence_score * 100)}% confidence`)} />
         <Timeline title="Recent reports" items={reports.map((item) => `${item.file_name ?? "Report"}: ${item.diagnosis}`)} />
@@ -50,12 +52,12 @@ export function HistoryClient() {
 
 function Timeline({ title, items }: { title: string; items: string[] }) {
   return (
-    <Card>
-      <h2 className="text-lg font-bold">{title}</h2>
+    <HoloPanel>
+      <h2 className="text-2xl font-black text-ink">{title}</h2>
       <div className="mt-4 space-y-3">
-        {items.map((item, index) => <p key={`${item}-${index}`} className="rounded-lg bg-white/70 p-3 text-sm text-slate-700">{item}</p>)}
+        {items.map((item, index) => <p key={`${item}-${index}`} className="rounded-lg border border-white/80 bg-white/70 p-3 text-sm text-slate-700 shadow-sm">{item}</p>)}
         {items.length === 0 && <p className="text-sm text-slate-500">No records yet.</p>}
       </div>
-    </Card>
+    </HoloPanel>
   );
 }

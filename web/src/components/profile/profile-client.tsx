@@ -7,6 +7,7 @@ import { Loader2, Save, UploadCloud } from "lucide-react";
 import { apiGet, apiPatch, apiUpload } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { HoloPanel, SignalBadge } from "@/components/ui/premium";
 import type { UserProfile } from "@/types/medisense";
 
 export function ProfileClient() {
@@ -57,19 +58,20 @@ export function ProfileClient() {
   if (error) return <Card className="max-w-4xl text-sm text-red-700">Profile could not be loaded from Firestore. Sign in again, check Firebase rules, and refresh.</Card>;
 
   return (
-    <Card className="max-w-5xl">
+    <HoloPanel className="max-w-5xl">
       <div className="mb-6 flex items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-bold">Health profile</h2>
-          <p className="mt-1 text-sm text-slate-500">This information is stored in Firestore and used to personalize history and guidance.</p>
+          <SignalBadge>Patient identity graph</SignalBadge>
+          <h2 className="mt-4 text-3xl font-black text-ink">Health profile</h2>
+          <p className="mt-2 text-sm text-muted">This information is stored in Firestore and used to personalize history and guidance.</p>
         </div>
         <Button onClick={() => update.mutate(form)} disabled={update.isPending}>
           {update.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
           Save
         </Button>
       </div>
-      <div className="mb-6 flex flex-col gap-4 rounded-lg border border-slate-100 bg-white/70 p-4 sm:flex-row sm:items-center">
-        <div className="grid h-20 w-20 place-items-center overflow-hidden rounded-lg bg-blue-50 text-2xl font-black text-primary">
+      <div className="mb-6 flex flex-col gap-4 rounded-lg border border-white/80 bg-white/70 p-4 shadow-sm sm:flex-row sm:items-center">
+        <div className="grid h-24 w-24 place-items-center overflow-hidden rounded-lg bg-gradient-to-br from-blue-50 to-cyan-50 text-3xl font-black text-primary shadow-halo">
           {profile?.avatar_url ? (
             <div className="relative h-full w-full">
               <Image src={profile.avatar_url} alt="Profile photo" fill className="object-cover" />
@@ -78,7 +80,7 @@ export function ProfileClient() {
             (profile?.name?.slice(0, 1) ?? "M")
           )}
         </div>
-        <label className="inline-flex h-11 cursor-pointer items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50">
+        <label className="inline-flex h-11 cursor-pointer items-center justify-center gap-2 rounded-lg border border-white/80 bg-white/78 px-4 text-sm font-semibold text-slate-700 shadow-sm hover:bg-white">
           {uploadingAvatar ? <Loader2 className="h-4 w-4 animate-spin" /> : <UploadCloud className="h-4 w-4" />}
           Upload profile photo
           <input className="hidden" type="file" accept="image/png,image/jpeg,image/webp" onChange={(event) => uploadAvatar(event.target.files?.[0] ?? null)} />
@@ -99,16 +101,16 @@ export function ProfileClient() {
         <Field label="Address" value={value("address")} onChange={(next) => setField("address", next)} />
       </div>
       {message && <p className="mt-5 rounded-lg bg-blue-50 p-3 text-sm text-blue-700">{message}</p>}
-    </Card>
+    </HoloPanel>
   );
 }
 
 function Field({ label, value, onChange, disabled, type = "text" }: { label: string; value: string | number; onChange?: (value: string) => void; disabled?: boolean; type?: string }) {
   return (
-    <label className="block text-sm font-semibold text-slate-600">
+    <label className="block text-sm font-bold text-slate-600">
       {label}
       <input
-        className="mt-2 h-12 w-full rounded-lg border border-slate-200 bg-white px-4 outline-primary disabled:bg-slate-50"
+        className="mt-2 h-12 w-full rounded-lg border border-white/80 bg-white/78 px-4 shadow-inner outline-primary disabled:bg-slate-50"
         type={type}
         value={value ?? ""}
         disabled={disabled}
