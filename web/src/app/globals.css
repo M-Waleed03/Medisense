@@ -4,14 +4,16 @@
 
 :root {
   color-scheme: light;
-  background: #f6fbff;
-  color: #0f172a;
-  --med-blue: #2563eb;
-  --med-cyan: #06b6d4;
-  --med-teal: #14b8a6;
-  --med-violet: #7c3aed;
-  --med-ink: #07111f;
-  --med-muted: #536276;
+  background: #fafbfc;
+  color: #1a202c;
+  --med-blue: #0066cc;
+  --med-cyan: #0088cc;
+  --med-teal: #0a8863;
+  --med-violet: #6b5b95;
+  --med-ink: #0d1b2a;
+  --med-muted: #64748b;
+  --med-light: #f8fafc;
+  --med-border: #e2e8f0;
 }
 
 * {
@@ -26,13 +28,11 @@ body {
   margin: 0;
   min-height: 100vh;
   background:
-    radial-gradient(circle at 12% 4%, rgba(6, 182, 212, 0.18), transparent 25rem),
-    radial-gradient(circle at 86% 10%, rgba(124, 58, 237, 0.13), transparent 28rem),
-    radial-gradient(circle at 50% 80%, rgba(20, 184, 166, 0.13), transparent 34rem),
-    linear-gradient(180deg, #ffffff 0%, #f6fbff 42%, #eef7ff 100%);
-  color: #0f172a;
-  font-family: Inter, Poppins, system-ui, sans-serif;
+    linear-gradient(135deg, #fafbfc 0%, #f1f5f9 50%, #ecf0f5 100%);
+  color: #1a202c;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
   overflow-x: hidden;
+  letter-spacing: -0.01em;
 }
 
 button,
@@ -43,21 +43,19 @@ select {
 }
 
 .glass {
-  border: 1px solid rgba(255, 255, 255, 0.78);
-  background:
-    linear-gradient(145deg, rgba(255, 255, 255, 0.86), rgba(241, 248, 255, 0.62)),
-    rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(2, 8, 23, 0.08);
+  background: rgba(255, 255, 255, 0.92);
   box-shadow:
-    0 24px 70px rgba(15, 23, 42, 0.11),
-    inset 0 1px 0 rgba(255, 255, 255, 0.92);
-  backdrop-filter: blur(24px) saturate(1.28);
+    0 12px 32px rgba(0, 0, 0, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(16px) saturate(1.15);
 }
 
 .mesh {
   background-image:
-    linear-gradient(rgba(37, 99, 235, 0.08) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(6, 182, 212, 0.08) 1px, transparent 1px);
-  background-size: 36px 36px;
+    linear-gradient(rgba(0, 102, 204, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 102, 204, 0.04) 1px, transparent 1px);
+  background-size: 48px 48px;
 }
 
 .cinematic-bg {
@@ -72,8 +70,9 @@ select {
   z-index: -3;
   pointer-events: none;
   background:
-    linear-gradient(110deg, rgba(37, 99, 235, 0.08), transparent 30%, rgba(20, 184, 166, 0.1) 58%, transparent 78%),
-    radial-gradient(circle at 50% -20%, rgba(255, 255, 255, 0.95), transparent 38rem);
+    radial-gradient(circle at 20% 8%, rgba(0, 102, 204, 0.08), transparent 32rem),
+    radial-gradient(circle at 80% 92%, rgba(10, 136, 99, 0.06), transparent 28rem),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(248, 250, 252, 0.96) 50%, rgba(241, 245, 249, 0.94) 100%);
 }
 
 .cinematic-bg::after {
@@ -82,29 +81,18 @@ select {
   inset: 0;
   z-index: -2;
   pointer-events: none;
-  opacity: 0.52;
+  opacity: 0.28;
   background-image:
-    linear-gradient(rgba(37, 99, 235, 0.055) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(20, 184, 166, 0.055) 1px, transparent 1px);
-  background-size: 42px 42px;
-  mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.74), transparent 74%);
+    linear-gradient(rgba(0, 102, 204, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(10, 136, 99, 0.03) 1px, transparent 1px);
+  background-size: 56px 56px;
+  mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.5), transparent 80%);
 }
 
 .holo-border {
   position: relative;
   overflow: hidden;
-}
-
-.holo-border::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  border-radius: inherit;
-  padding: 1px;
-  background: linear-gradient(135deg, rgba(37, 99, 235, 0.56), rgba(20, 184, 166, 0.44), rgba(124, 58, 237, 0.46), rgba(255, 255, 255, 0.72));
-  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-  mask-composite: exclude;
+  border: 1px solid rgba(0, 102, 204, 0.12);
 }
 
 .scan-sheen {
@@ -115,10 +103,10 @@ select {
 .scan-sheen::after {
   content: "";
   position: absolute;
-  inset: -80% -40%;
-  transform: translateX(-55%) rotate(18deg);
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.62), transparent);
-  animation: scan-sheen 5.6s ease-in-out infinite;
+  inset: -100% -60%;
+  transform: translateX(-45%) rotate(15deg);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+  animation: scan-sheen 6s ease-in-out infinite;
   pointer-events: none;
 }
 
@@ -139,13 +127,57 @@ select {
   margin-top: 0.5rem;
   height: 3rem;
   width: 100%;
+  border-radius: 0.625rem;
+  border: 1px solid var(--med-border);
+  background: rgba(255, 255, 255, 0.88);
+  padding: 0 1rem;
+  color: #0d1b2a;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04), inset 0 1px 2px rgba(255, 255, 255, 0.92);
+  outline-color: var(--med-blue);
+  transition: all 0.2s ease;
+}
+
+.premium-input:hover {
+  border-color: rgba(0, 102, 204, 0.15);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06), inset 0 1px 2px rgba(255, 255, 255, 0.92);
+}
+
+.premium-input:focus {
+  border-color: var(--med-blue);
+  box-shadow: 0 4px 16px rgba(0, 102, 204, 0.12), inset 0 1px 2px rgba(255, 255, 255, 0.92);
+}
+
+@keyframes scan-sheen {
+  0% {
+    transform: translateX(-100%) rotate(15deg);
+  }
+  50% {
+    transform: translateX(100%) rotate(15deg);
+  }
+  100% {
+    transform: translateX(-100%) rotate(15deg);
+  }
+}
+
+.medical-card {
+  border: 1px solid var(--med-border);
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+  backdrop-filter: blur(8px);
+}
+
+.medical-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.375rem 0.875rem;
   border-radius: 0.5rem;
-  border: 1px solid rgba(255, 255, 255, 0.8);
-  background: rgba(255, 255, 255, 0.76);
-  padding: 0 0.875rem;
-  color: #07111f;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.88), 0 10px 25px rgba(15, 23, 42, 0.06);
-  outline-color: #2563eb;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  background: linear-gradient(135deg, rgba(0, 102, 204, 0.08), rgba(0, 136, 204, 0.04));
+  border: 1px solid rgba(0, 102, 204, 0.15);
+  color: var(--med-blue);
 }
 
 .heartbeat-line {
