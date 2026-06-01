@@ -16,15 +16,15 @@ export function buttonStyles({
   size?: ButtonProps["size"];
 } = {}) {
   return cn(
-    "inline-flex items-center justify-center gap-2 rounded-lg font-semibold transition duration-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-50",
-    variant === "primary" && "scan-sheen bg-gradient-to-r from-primary via-cyan to-secondary text-white shadow-glow hover:-translate-y-0.5 hover:shadow-halo",
-    variant === "secondary" && "bg-ink text-white shadow-soft hover:-translate-y-0.5 hover:bg-slate-900",
-    variant === "ghost" && "text-slate-700 hover:bg-white/70 hover:text-ink",
-    variant === "outline" && "border border-white/80 bg-white/74 text-slate-800 shadow-sm backdrop-blur-xl hover:-translate-y-0.5 hover:bg-white",
-    size === "sm" && "h-9 px-3 text-sm",
-    size === "md" && "h-11 px-5 text-sm",
-    size === "lg" && "h-12 px-6 text-base",
-    size === "icon" && "h-10 w-10 p-0",
+    "inline-flex items-center justify-center gap-2 rounded-pill font-arcadia font-medium tracking-[0.01em] transition duration-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-50",
+    variant === "primary" && "scan-sheen bg-primary text-pure-white hover:bg-primary/90",
+    variant === "secondary" && "border border-ghost-blue/15 bg-ghost-blue/10 text-starlight hover:bg-ghost-blue/16",
+    variant === "ghost" && "text-starlight hover:bg-ghost-blue/10",
+    variant === "outline" && "border border-lead/60 bg-transparent text-starlight hover:border-ghost-blue/50 hover:bg-ghost-blue/10",
+    size === "sm" && "h-10 px-5 text-sm",
+    size === "md" && "h-12 px-6 text-sm",
+    size === "lg" && "h-14 px-7 text-base",
+    size === "icon" && "h-11 w-11 p-0",
     className
   );
 }

@@ -78,45 +78,76 @@ class MediSenseApp extends StatelessWidget {
       title: 'MEDISENSE',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
+        brightness: Brightness.dark,
         useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: MediColors.primary,
+        colorScheme: const ColorScheme.dark(
           primary: MediColors.primary,
-          secondary: MediColors.secondary,
-          tertiary: MediColors.accent,
-          surface: const Color(0xFFF8FBFF),
+          secondary: MediColors.ghostBlue,
+          surface: MediColors.surface,
+          onPrimary: MediColors.white,
+          onSurface: MediColors.text,
+          outline: MediColors.lead,
         ),
         scaffoldBackgroundColor: MediColors.background,
+        fontFamily: 'Roboto',
+        textTheme: ThemeData.dark().textTheme.apply(
+              bodyColor: MediColors.text,
+              displayColor: MediColors.text,
+            ),
+        iconTheme: const IconThemeData(color: MediColors.text),
         filledButtonTheme: FilledButtonThemeData(
           style: FilledButton.styleFrom(
             minimumSize: const Size.fromHeight(52),
+            backgroundColor: MediColors.primary,
+            foregroundColor: MediColors.white,
             shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(32)),
             textStyle:
-                const TextStyle(fontWeight: FontWeight.w900, fontSize: 15),
+                const TextStyle(fontWeight: FontWeight.w500, fontSize: 15),
+            elevation: 0,
           ),
         ),
         outlinedButtonTheme: OutlinedButtonThemeData(
           style: OutlinedButton.styleFrom(
             minimumSize: const Size.fromHeight(48),
-            foregroundColor: MediColors.ink,
-            side: const BorderSide(color: Color(0xCCE2E8F0)),
+            foregroundColor: MediColors.text,
+            side: const BorderSide(color: MediColors.lead),
             shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-            textStyle: const TextStyle(fontWeight: FontWeight.w800),
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(32)),
+            textStyle: const TextStyle(fontWeight: FontWeight.w500),
           ),
         ),
         inputDecorationTheme: InputDecorationTheme(
           filled: true,
-          fillColor: Colors.white.withValues(alpha: 0.78),
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+          fillColor: MediColors.graphite.withValues(alpha: 0.72),
+          labelStyle: const TextStyle(color: MediColors.muted),
+          hintStyle: const TextStyle(color: MediColors.muted),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(32)),
           enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(16),
-              borderSide: const BorderSide(color: Color(0xCCE2E8F0))),
+              borderRadius: BorderRadius.circular(32),
+              borderSide: const BorderSide(color: MediColors.lead)),
           focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(32),
               borderSide:
                   const BorderSide(color: MediColors.primary, width: 1.4)),
+        ),
+        chipTheme: ChipThemeData(
+          backgroundColor: MediColors.graphite.withValues(alpha: 0.64),
+          selectedColor: MediColors.primary,
+          checkmarkColor: MediColors.white,
+          labelStyle: const TextStyle(color: MediColors.text),
+          secondaryLabelStyle: const TextStyle(color: MediColors.white),
+          side: const BorderSide(color: MediColors.lead),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(32)),
+        ),
+        navigationBarTheme: NavigationBarThemeData(
+          backgroundColor: MediColors.surface.withValues(alpha: 0.88),
+          indicatorColor: MediColors.ghostBlue.withValues(alpha: 0.12),
+          labelTextStyle: WidgetStateProperty.all(
+              const TextStyle(color: MediColors.muted, fontSize: 12)),
+          iconTheme: WidgetStateProperty.all(
+              const IconThemeData(color: MediColors.text)),
         ),
       ),
       home: const AuthGate(),
@@ -125,14 +156,19 @@ class MediSenseApp extends StatelessWidget {
 }
 
 class MediColors {
-  static const primary = Color(0xFF2563EB);
-  static const secondary = Color(0xFF14B8A6);
-  static const accent = Color(0xFF7C3AED);
-  static const cyan = Color(0xFF06B6D4);
-  static const background = Color(0xFFF6FBFF);
-  static const text = Color(0xFF07111F);
-  static const ink = Color(0xFF07111F);
-  static const muted = Color(0xFF536276);
+  static const primary = Color(0xFF5266EB);
+  static const ghostBlue = Color(0xFFCDDDFF);
+  static const secondary = ghostBlue;
+  static const accent = primary;
+  static const cyan = ghostBlue;
+  static const background = Color(0xFF171721);
+  static const surface = Color(0xFF1E1E2A);
+  static const graphite = Color(0xFF272735);
+  static const lead = Color(0xFF70707D);
+  static const text = Color(0xFFEDEDF3);
+  static const white = Color(0xFFFFFFFF);
+  static const ink = text;
+  static const muted = Color(0xFFC3C3CC);
 }
 
 class AuthGate extends StatelessWidget {
@@ -187,12 +223,12 @@ class SplashScreen extends StatelessWidget {
                   SizedBox(height: 18),
                   Text('MEDISENSE',
                       style:
-                          TextStyle(fontSize: 30, fontWeight: FontWeight.w900)),
+                          TextStyle(fontSize: 30, fontWeight: FontWeight.w300)),
                   SizedBox(height: 6),
                   Text('AI doctor workspace initializing',
                       style: TextStyle(
                           color: MediColors.muted,
-                          fontWeight: FontWeight.w700)),
+                          fontWeight: FontWeight.w400)),
                   SizedBox(height: 18),
                   LinearProgressIndicator(minHeight: 6),
                 ],
@@ -221,7 +257,7 @@ class SetupIssueScreen extends StatelessWidget {
               const DoctorMark(size: 64),
               const SizedBox(height: 18),
               const Text('MEDISENSE setup needs attention',
-                  style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900)),
+                  style: TextStyle(fontSize: 28, fontWeight: FontWeight.w300)),
               const SizedBox(height: 12),
               const Text(
                   'Firebase could not start, so MEDISENSE is showing this setup screen instead of a blank app.'),
@@ -306,12 +342,12 @@ class _OnboardingAuthShellState extends State<OnboardingAuthShell> {
                       Text(slide.$1,
                           style: const TextStyle(
                               fontSize: 30,
-                              fontWeight: FontWeight.w900,
+                              fontWeight: FontWeight.w300,
                               color: MediColors.text)),
                       const SizedBox(height: 12),
                       Text(slide.$2,
                           style: const TextStyle(
-                              height: 1.45, color: Color(0xFF475569))),
+                              height: 1.45, color: MediColors.muted)),
                     ],
                   ),
                 ),
@@ -326,7 +362,7 @@ class _OnboardingAuthShellState extends State<OnboardingAuthShell> {
                             decoration: BoxDecoration(
                                 color: page == index
                                     ? MediColors.primary
-                                    : const Color(0xFFCBD5E1),
+                                    : MediColors.lead,
                                 borderRadius: BorderRadius.circular(10)),
                           )),
                 ),
@@ -469,11 +505,11 @@ class _AuthScreenState extends State<AuthScreen> {
                       : 'Welcome back to MEDISENSE',
                   style: const TextStyle(
                       fontSize: 32,
-                      fontWeight: FontWeight.w900,
+                      fontWeight: FontWeight.w300,
                       color: MediColors.text)),
               const SizedBox(height: 8),
               const Text('Use the same Firebase credentials on web and mobile.',
-                  style: TextStyle(color: Color(0xFF475569))),
+                  style: TextStyle(color: MediColors.muted)),
               const SizedBox(height: 24),
               GlassCard(
                 child: Column(
@@ -538,7 +574,7 @@ class _AuthScreenState extends State<AuthScreen> {
               if (message.isNotEmpty)
                 GlassCard(
                     child: Text(message,
-                        style: const TextStyle(fontWeight: FontWeight.w700))),
+                        style: const TextStyle(fontWeight: FontWeight.w400))),
             ],
           ),
         ),
@@ -599,12 +635,13 @@ class _MobileShellState extends State<MobileShell> {
                           children: [
                             const Text('MEDISENSE',
                                 style: TextStyle(
-                                    fontWeight: FontWeight.w900,
+                                    fontWeight: FontWeight.w500,
+                                    color: MediColors.text,
                                     letterSpacing: 0.8)),
                             Text(labels[index],
                                 style: const TextStyle(
                                     color: MediColors.muted,
-                                    fontWeight: FontWeight.w700)),
+                                    fontWeight: FontWeight.w400)),
                           ]),
                     ),
                     IconButton(
@@ -628,8 +665,9 @@ class _MobileShellState extends State<MobileShell> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => setState(() => index = 3),
-        backgroundColor: MediColors.accent,
-        foregroundColor: Colors.white,
+        backgroundColor: MediColors.primary,
+        foregroundColor: MediColors.white,
+        elevation: 0,
         child: const Icon(Icons.smart_toy_outlined),
       ),
       bottomNavigationBar: SafeArea(
@@ -637,14 +675,14 @@ class _MobileShellState extends State<MobileShell> {
         child: Padding(
           padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
           child: ClipRRect(
-            borderRadius: BorderRadius.circular(28),
+            borderRadius: BorderRadius.circular(32),
             child: BackdropFilter(
               filter: ImageFilter.blur(sigmaX: 22, sigmaY: 22),
               child: NavigationBar(
                 selectedIndex: index,
                 height: 72,
-                backgroundColor: Colors.white.withValues(alpha: 0.78),
-                indicatorColor: const Color(0xFFEFF6FF),
+                backgroundColor: MediColors.surface.withValues(alpha: 0.92),
+                indicatorColor: MediColors.ghostBlue.withValues(alpha: 0.12),
                 labelBehavior:
                     NavigationDestinationLabelBehavior.onlyShowSelected,
                 onDestinationSelected: (value) => setState(() => index = value),
@@ -746,7 +784,7 @@ class DashboardScreen extends StatelessWidget {
                                         'Hello ${profile['fullName'] ?? FirebaseAuth.instance.currentUser?.email?.split('@').first ?? 'there'}',
                                         style: const TextStyle(
                                             fontSize: 22,
-                                            fontWeight: FontWeight.w900,
+                                            fontWeight: FontWeight.w300,
                                             color: MediColors.ink)),
                                     const SizedBox(height: 6),
                                     const Text(
@@ -754,7 +792,7 @@ class DashboardScreen extends StatelessWidget {
                                         style: TextStyle(
                                             color: MediColors.muted,
                                             height: 1.35,
-                                            fontWeight: FontWeight.w600)),
+                                            fontWeight: FontWeight.w400)),
                                   ]),
                             ),
                           ]),
@@ -793,7 +831,7 @@ class DashboardScreen extends StatelessWidget {
                                 label: 'Chat messages',
                                 value: chats.length.toString(),
                                 icon: Icons.smart_toy_outlined,
-                                color: const Color(0xFF0EA5E9)),
+                                color: MediColors.ghostBlue),
                           ],
                         ),
                         const SizedBox(height: 14),
@@ -804,7 +842,7 @@ class DashboardScreen extends StatelessWidget {
                               const Text('CBC trends',
                                   style: TextStyle(
                                       fontSize: 18,
-                                      fontWeight: FontWeight.w900)),
+                                      fontWeight: FontWeight.w500)),
                               const SizedBox(height: 12),
                               SizedBox(
                                 height: 230,
@@ -1038,7 +1076,7 @@ class _SymptomScreenState extends State<SymptomScreen> {
                     const Text('AI body scan',
                         style: TextStyle(
                             fontSize: 20,
-                            fontWeight: FontWeight.w900,
+                            fontWeight: FontWeight.w300,
                             color: MediColors.ink)),
                     const SizedBox(height: 6),
                     Text(
@@ -1054,10 +1092,10 @@ class _SymptomScreenState extends State<SymptomScreen> {
                 CircularProgressIndicator(
                     value: (selected.length / 10).clamp(0.08, 1),
                     strokeWidth: 8,
-                    backgroundColor: const Color(0xFFEFF6FF)),
+                    backgroundColor: MediColors.lead),
                 Text(selected.length.toString(),
                     style: const TextStyle(
-                        fontSize: 24, fontWeight: FontWeight.w900)),
+                        fontSize: 24, fontWeight: FontWeight.w500)),
               ]),
             ),
           ]),
@@ -1118,7 +1156,7 @@ class _SymptomScreenState extends State<SymptomScreen> {
                 children: [
                   Text(entry.key,
                       style: const TextStyle(
-                          fontSize: 17, fontWeight: FontWeight.w900)),
+                          fontSize: 17, fontWeight: FontWeight.w500)),
                   const SizedBox(height: 10),
                   Wrap(
                       spacing: 8,
@@ -1126,12 +1164,12 @@ class _SymptomScreenState extends State<SymptomScreen> {
                       children: entry.value
                           .map((item) => FilterChip(
                               selected: selected.contains(item),
-                              selectedColor: const Color(0xFFEFF6FF),
-                              checkmarkColor: MediColors.primary,
+                              selectedColor: MediColors.primary,
+                              checkmarkColor: MediColors.white,
                               side: BorderSide(
                                   color: selected.contains(item)
                                       ? MediColors.primary
-                                      : const Color(0xCCE2E8F0)),
+                                      : MediColors.lead),
                               label: Text(item),
                               onSelected: (_) => setState(() =>
                                   selected.contains(item)
@@ -1156,7 +1194,7 @@ class _SymptomScreenState extends State<SymptomScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text('Text symptom checker',
-                  style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900)),
+                  style: TextStyle(fontSize: 17, fontWeight: FontWeight.w500)),
               const SizedBox(height: 10),
               TextField(
                   controller: text,
@@ -1182,7 +1220,7 @@ class _SymptomScreenState extends State<SymptomScreen> {
                     ? 'Prediction results and safety guidance will appear here.'
                     : result,
                 style: const TextStyle(
-                    fontWeight: FontWeight.w700, height: 1.35))),
+                    fontWeight: FontWeight.w400, height: 1.35))),
       ],
     );
   }
@@ -1280,7 +1318,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
               Expanded(
                 child: Text('Holographic OCR scanner',
                     style:
-                        TextStyle(fontSize: 21, fontWeight: FontWeight.w900)),
+                        TextStyle(fontSize: 21, fontWeight: FontWeight.w300)),
               ),
             ]),
             const SizedBox(height: 8),
@@ -1291,14 +1329,13 @@ class _ReportsScreenState extends State<ReportsScreen> {
             Container(
               height: 118,
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(22),
-                border: Border.all(color: const Color(0x993B82F6)),
-                gradient: const LinearGradient(
-                    colors: [Color(0xFFEFF6FF), Color(0xFFE6FFFB)]),
+                border: Border.all(
+                    color: MediColors.ghostBlue.withValues(alpha: 0.25)),
+                color: MediColors.graphite.withValues(alpha: 0.45),
               ),
               child: const Center(
                 child: Icon(Icons.document_scanner_outlined,
-                    color: MediColors.primary, size: 46),
+                    color: MediColors.text, size: 46),
               ),
             ),
             const SizedBox(height: 14),
@@ -1315,7 +1352,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
       GlassCard(
           child: Text(result,
               style:
-                  const TextStyle(height: 1.35, fontWeight: FontWeight.w700))),
+                  const TextStyle(height: 1.35, fontWeight: FontWeight.w400))),
     ]);
   }
 }
@@ -1425,7 +1462,7 @@ class _ChatScreenState extends State<ChatScreen> {
                         children: [
                           Text('Medi AI assistant',
                               style: TextStyle(
-                                  fontSize: 20, fontWeight: FontWeight.w900)),
+                                  fontSize: 20, fontWeight: FontWeight.w300)),
                           SizedBox(height: 6),
                           Text('Floating clinical chat with profile and report context.',
                               style: TextStyle(
@@ -1447,7 +1484,8 @@ class _ChatScreenState extends State<ChatScreen> {
                 GlassCard(
                     child: Text(errorMessage,
                         style: const TextStyle(
-                            color: Colors.red, fontWeight: FontWeight.w700))),
+                            color: MediColors.text,
+                            fontWeight: FontWeight.w400))),
               if (docs.isEmpty && pendingMessage.isEmpty && !loading)
                 const EmptyState(
                     text:
@@ -1798,7 +1836,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
           DropdownButtonFormField(
               initialValue: theme,
               items: const [
-                DropdownMenuItem(value: 'light', child: Text('Light medical')),
+                DropdownMenuItem(
+                    value: 'light', child: Text('Command-center dark')),
                 DropdownMenuItem(value: 'system', child: Text('System'))
               ],
               onChanged: (value) => setState(() => theme = value ?? 'light'),
@@ -1841,9 +1880,9 @@ class PremiumBackground extends StatelessWidget {
           decoration: BoxDecoration(
             gradient: LinearGradient(
               colors: [
-                Color(0xFFFFFFFF),
-                Color(0xFFF6FBFF),
-                Color(0xFFEAF7FF)
+                MediColors.background,
+                MediColors.surface,
+                MediColors.background
               ],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
@@ -1854,13 +1893,13 @@ class PremiumBackground extends StatelessWidget {
           top: -90,
           right: -80,
           child: _LightField(
-              size: 260, colors: [MediColors.primary, MediColors.cyan]),
+              size: 260, colors: [MediColors.primary, MediColors.ghostBlue]),
         ),
         Positioned(
           bottom: -120,
           left: -90,
           child: _LightField(
-              size: 300, colors: [MediColors.secondary, MediColors.accent]),
+              size: 300, colors: [MediColors.ghostBlue, MediColors.primary]),
         ),
         CustomPaint(painter: _NeuralGridPainter()),
         child,
@@ -1886,8 +1925,8 @@ class _LightField extends StatelessWidget {
             borderRadius: BorderRadius.circular(80),
             gradient: LinearGradient(
               colors: [
-                colors.first.withValues(alpha: 0.22),
-                colors.last.withValues(alpha: 0.10),
+                colors.first.withValues(alpha: 0.13),
+                colors.last.withValues(alpha: 0.06),
                 Colors.transparent,
               ],
               begin: Alignment.topLeft,
@@ -1904,7 +1943,7 @@ class _NeuralGridPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = const Color(0x123B82F6)
+      ..color = MediColors.ghostBlue.withValues(alpha: 0.05)
       ..strokeWidth = 1;
     const gap = 34.0;
     for (double x = 0; x < size.width; x += gap) {
@@ -1929,18 +1968,11 @@ class DoctorMark extends StatelessWidget {
       width: size,
       height: size,
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-            colors: [MediColors.primary, MediColors.cyan, MediColors.secondary],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight),
-        borderRadius: BorderRadius.circular(size * 0.28),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.8)),
-        boxShadow: const [
-          BoxShadow(
-              color: Color(0x333B82F6), blurRadius: 34, offset: Offset(0, 18))
-        ],
+        color: MediColors.graphite,
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(color: MediColors.ghostBlue.withValues(alpha: 0.16)),
       ),
-      child: const Icon(Icons.monitor_heart_outlined, color: Colors.white),
+      child: const Icon(Icons.monitor_heart_outlined, color: MediColors.text),
     );
   }
 }
@@ -1961,28 +1993,14 @@ class GlassCard extends StatelessWidget {
       width: double.infinity,
       margin: margin,
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.zero,
         child: BackdropFilter(
           filter: ImageFilter.blur(sigmaX: 22, sigmaY: 22),
           child: Container(
             padding: padding,
             decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  Colors.white.withValues(alpha: 0.88),
-                  const Color(0xFFF1F8FF).withValues(alpha: 0.68),
-                ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(24),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.86)),
-              boxShadow: const [
-                BoxShadow(
-                    color: Color(0x1F0F172A),
-                    blurRadius: 34,
-                    offset: Offset(0, 18))
-              ],
+              color: MediColors.surface.withValues(alpha: 0.82),
+              border: Border.all(color: MediColors.lead.withValues(alpha: 0.38)),
             ),
             child: child,
           ),
@@ -2007,21 +2025,21 @@ class SectionTitle extends StatelessWidget {
           const Text('MEDISENSE',
               style: TextStyle(
                   fontSize: 12,
-                  fontWeight: FontWeight.w900,
+                  fontWeight: FontWeight.w500,
                   letterSpacing: 1.6,
-                  color: MediColors.primary)),
+                  color: MediColors.muted)),
           const SizedBox(height: 4),
           Text(title,
               style: const TextStyle(
                   fontSize: 30,
-                  fontWeight: FontWeight.w900,
+                  fontWeight: FontWeight.w300,
                   color: MediColors.text)),
           const SizedBox(height: 6),
           Text(subtitle,
               style: const TextStyle(
                   color: MediColors.muted,
                   height: 1.45,
-                  fontWeight: FontWeight.w600)),
+                  fontWeight: FontWeight.w400)),
         ],
       ),
     );
@@ -2035,7 +2053,7 @@ class EmptyState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GlassCard(
-        child: Text(text, style: const TextStyle(color: Color(0xFF64748B))));
+        child: Text(text, style: const TextStyle(color: MediColors.muted)));
   }
 }
 
@@ -2056,34 +2074,25 @@ class MetricTile extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            Colors.white.withValues(alpha: 0.9),
-            color.withValues(alpha: 0.08),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.86)),
-        boxShadow: const [
-          BoxShadow(
-              color: Color(0x1A0F172A), blurRadius: 26, offset: Offset(0, 14))
-        ],
+        color: MediColors.graphite.withValues(alpha: 0.48),
+        border: Border.all(color: MediColors.lead.withValues(alpha: 0.35)),
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Icon(icon, color: color),
+        Icon(icon, color: MediColors.text),
         const Spacer(),
         Text(label,
             style: const TextStyle(
                 fontSize: 12,
-                color: Color(0xFF64748B),
-                fontWeight: FontWeight.w800)),
+                color: MediColors.muted,
+                fontWeight: FontWeight.w500)),
         const SizedBox(height: 4),
         Text(value,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w900)),
+            style: const TextStyle(
+                fontSize: 17,
+                fontWeight: FontWeight.w500,
+                color: MediColors.text)),
       ]),
     );
   }
@@ -2109,18 +2118,18 @@ class DashboardTimeline extends StatelessWidget {
         children: [
           Text(title,
               style:
-                  const TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
+                  const TextStyle(fontSize: 18, fontWeight: FontWeight.w500)),
           const SizedBox(height: 12),
           if (docs.isEmpty)
-            Text(empty, style: const TextStyle(color: Color(0xFF64748B))),
+            Text(empty, style: const TextStyle(color: MediColors.muted)),
           ...docs.take(4).map((doc) => Container(
                 width: double.infinity,
                 margin: const EdgeInsets.only(bottom: 8),
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.76),
-                    border: Border.all(color: const Color(0xCCE2E8F0)),
-                    borderRadius: BorderRadius.circular(16)),
+                    color: MediColors.graphite.withValues(alpha: 0.48),
+                    border: Border.all(
+                        color: MediColors.lead.withValues(alpha: 0.35))),
                 child: Text(builder(doc.data()),
                     maxLines: 3, overflow: TextOverflow.ellipsis),
               )),
@@ -2139,24 +2148,18 @@ Widget chatBubble(BuildContext context, String text, bool fromUser) {
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        gradient: fromUser
-            ? const LinearGradient(
-                colors: [MediColors.primary, MediColors.cyan],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight)
-            : null,
-        color: fromUser ? null : Colors.white.withValues(alpha: 0.84),
-        borderRadius: BorderRadius.circular(18),
+        color: fromUser
+            ? MediColors.primary
+            : MediColors.graphite.withValues(alpha: 0.62),
+        borderRadius: BorderRadius.circular(fromUser ? 24 : 4),
         border: Border.all(
-            color: fromUser ? MediColors.primary : const Color(0xCCE2E8F0)),
-        boxShadow: const [
-          BoxShadow(
-              color: Color(0x120F172A), blurRadius: 18, offset: Offset(0, 10))
-        ],
+            color: fromUser
+                ? MediColors.primary
+                : MediColors.lead.withValues(alpha: 0.35)),
       ),
       child: Text(text,
           style: TextStyle(
-              color: fromUser ? Colors.white : const Color(0xFF334155),
+              color: fromUser ? MediColors.white : MediColors.muted,
               height: 1.35)),
     ),
   );
@@ -2169,14 +2172,14 @@ Widget typingBubble() {
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: const Color(0xFFE2E8F0))),
+          color: MediColors.graphite.withValues(alpha: 0.62),
+          border: Border.all(color: MediColors.lead.withValues(alpha: 0.35))),
       child: const Row(mainAxisSize: MainAxisSize.min, children: [
         SizedBox.square(
             dimension: 18, child: CircularProgressIndicator(strokeWidth: 2)),
         SizedBox(width: 12),
-        Text('MEDISENSE is typing...')
+        Text('MEDISENSE is typing...',
+            style: TextStyle(color: MediColors.muted))
       ]),
     ),
   );

@@ -12,7 +12,7 @@ type History = { symptoms: SymptomRecord[]; reports: ReportRecord[]; messages: C
 export function HistoryClient() {
   const { data, isLoading, error } = useQuery({ queryKey: ["history-page"], queryFn: () => apiGet<History>("/history") });
   if (isLoading) return <Card className="h-40 animate-pulse" />;
-  if (error) return <Card className="text-sm text-red-700">History could not be loaded from Firestore. Sign in again or check Firebase rules.</Card>;
+  if (error) return <Card className="text-sm text-starlight">History could not be loaded from Firestore. Sign in again or check Firebase rules.</Card>;
   const reports = data?.reports ?? [];
   const trendData = reports.slice(0, 12).reverse().map((item, index) => ({
     name: `R${index + 1}`,
@@ -24,21 +24,21 @@ export function HistoryClient() {
     <div className="space-y-5">
       <HoloPanel>
         <SignalBadge>Longitudinal health graph</SignalBadge>
-        <h2 className="mt-4 text-3xl font-black text-ink">Health analytics timeline</h2>
+        <h2 className="mt-4 font-arcadiaDisplay text-heading font-light text-starlight">Health analytics timeline</h2>
         {trendData.length > 0 ? (
           <div className="mt-4 h-72">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={trendData}>
-                <XAxis dataKey="name" tick={{ fontSize: 12 }} />
-                <YAxis tick={{ fontSize: 12 }} />
-                <Tooltip />
-                <Line type="monotone" dataKey="platelets" stroke="#3B82F6" strokeWidth={2} dot={false} />
-                <Line type="monotone" dataKey="wbc" stroke="#14B8A6" strokeWidth={2} dot={false} />
+                <XAxis dataKey="name" tick={{ fontSize: 12, fill: "#c3c3cc" }} stroke="#70707d" />
+                <YAxis tick={{ fontSize: 12, fill: "#c3c3cc" }} stroke="#70707d" />
+                <Tooltip contentStyle={{ backgroundColor: "#1e1e2a", border: "1px solid rgba(112,112,125,0.45)", borderRadius: 0, color: "#ededf3" }} />
+                <Line type="monotone" dataKey="platelets" stroke="#5266eb" strokeWidth={2} dot={false} />
+                <Line type="monotone" dataKey="wbc" stroke="#cdddff" strokeWidth={2} dot={false} />
               </LineChart>
             </ResponsiveContainer>
           </div>
         ) : (
-          <p className="mt-4 text-sm text-slate-500">No report trends yet. Upload CBC reports to see live analytics.</p>
+          <p className="mt-4 text-sm text-silver">No report trends yet. Upload CBC reports to see live analytics.</p>
         )}
       </HoloPanel>
       <div className="grid gap-5 lg:grid-cols-3">
@@ -53,10 +53,10 @@ export function HistoryClient() {
 function Timeline({ title, items }: { title: string; items: string[] }) {
   return (
     <HoloPanel>
-      <h2 className="text-2xl font-black text-ink">{title}</h2>
+      <h2 className="font-arcadiaDisplay text-heading-sm font-light text-starlight">{title}</h2>
       <div className="mt-4 space-y-3">
-        {items.map((item, index) => <p key={`${item}-${index}`} className="rounded-lg border border-white/80 bg-white/70 p-3 text-sm text-slate-700 shadow-sm">{item}</p>)}
-        {items.length === 0 && <p className="text-sm text-slate-500">No records yet.</p>}
+        {items.map((item, index) => <p key={`${item}-${index}`} className="border border-lead/35 bg-graphite/45 p-3 text-sm text-silver">{item}</p>)}
+        {items.length === 0 && <p className="text-sm text-silver">No records yet.</p>}
       </div>
     </HoloPanel>
   );

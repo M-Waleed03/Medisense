@@ -2,8 +2,8 @@
 
 import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
-import { Area, AreaChart, CartesianGrid, Line, LineChart, PolarAngleAxis, RadialBar, RadialBarChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { Activity, BarChart3, Calendar, FileText, Heart, Shield, TrendingUp, User } from "lucide-react";
+import { Area, AreaChart, CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { Activity, Calendar, FileText, Heart, Shield, TrendingUp, User } from "lucide-react";
 import { apiGet } from "@/lib/api";
 import { percent } from "@/lib/utils";
 import { Card } from "@/components/ui/card";
@@ -18,6 +18,13 @@ type History = {
   reports: ReportRecord[];
   messages: ChatMessage[];
   recommendations: RecommendationRecord[];
+};
+
+const tooltipStyle = {
+  backgroundColor: "#1e1e2a",
+  border: "1px solid rgba(112,112,125,0.45)",
+  borderRadius: 0,
+  color: "#ededf3"
 };
 
 export function DashboardClient() {
@@ -53,224 +60,131 @@ export function DashboardClient() {
         reports.length === 0 ? "Upload a CBC report to unlock platelet and WBC trend monitoring." : null
       ].filter(Boolean) as string[];
 
-  if (isLoading) return <div className="grid gap-4 md:grid-cols-4">{Array.from({ length: 4 }).map((_, i) => <Card key={i} className="h-36 animate-pulse" />)}</div>;
-  if (error) return <Card className="text-red-700">Unable to load dashboard from Firestore. Sign in again, check Firebase rules, then refresh.</Card>;
+  if (isLoading) return <div className="grid gap-4 md:grid-cols-4">{Array.from({ length: 4 }).map((_, index) => <Card key={index} className="h-36 animate-pulse" />)}</div>;
+  if (error) return <Card className="text-sm text-starlight">Unable to load dashboard from Firestore. Sign in again, check Firebase rules, then refresh.</Card>;
 
   return (
     <div className="space-y-8">
-      {/* Welcome Section */}
       <Reveal>
-        <div className="relative overflow-hidden rounded-2xl border border-slate-200 bg-gradient-to-br from-blue-600 to-blue-700 p-8 text-white shadow-lg md:p-12">
-          <div className="absolute -right-32 -top-32 h-64 w-64 rounded-full bg-blue-500/10 blur-3xl" />
-          <div className="relative grid gap-6 lg:grid-cols-[1fr_auto] lg:items-center">
-            <div className="flex flex-col gap-4 md:flex-row md:items-center">
+        <HoloPanel className="p-7 md:p-9">
+          <div className="grid gap-7 lg:grid-cols-[1fr_auto] lg:items-center">
+            <div className="flex flex-col gap-5 md:flex-row md:items-center">
               <AiAvatar size="lg" />
               <div>
-                <p className="text-sm font-semibold text-blue-100 uppercase tracking-wide">Welcome back</p>
-                <h1 className="mt-2 text-3xl font-bold md:text-4xl">
+                <p className="text-xs font-medium uppercase tracking-[0.16em] text-silver">Welcome back</p>
+                <h2 className="mt-3 font-arcadiaDisplay text-heading-lg font-light text-starlight">
                   Good to see you{profile?.name ? `, ${profile.name.split(" ")[0]}` : ""}
-                </h1>
-                <p className="mt-3 text-sm text-blue-100 leading-relaxed max-w-xl">
-                  Your health dashboard is updated with the latest diagnostics, reports, and AI-powered insights.
+                </h2>
+                <p className="mt-3 max-w-2xl text-sm leading-6 text-silver">
+                  Your health workspace is updated with the latest diagnostics, reports, and AI guidance.
                 </p>
               </div>
             </div>
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-3 gap-3">
               <StatBox label="Score" value={`${healthScore}%`} />
               <StatBox label="Reports" value={String(reports.length)} />
               <StatBox label="Chats" value={String(messages.length)} />
             </div>
           </div>
-        </div>
+        </HoloPanel>
       </Reveal>
 
-      {/* Top Metrics */}
       <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-4">
-        <MetricCard 
-          title="Latest diagnosis" 
-          value={latest?.predicted_disease ?? latestText?.result?.predictedDisease ?? "No checks"} 
-          icon={Heart} 
-          color="blue"
-        />
-        <MetricCard 
-          title="Report analysis" 
-          value={latestReport?.diagnosis ? latestReport.diagnosis.slice(0, 32) : "No reports"} 
-          icon={FileText} 
-          color="blue"
-        />
-        <MetricCard 
-          title="Risk level" 
-          value={latest?.risk_level ?? latestReport?.riskLevel ?? "Low"} 
-          icon={Shield} 
-          color="amber"
-        />
-        <MetricCard 
-          title="Profile complete" 
-          value={`${profileCompletion}%`} 
-          icon={User} 
-          color="emerald"
-        />
+        <MetricCard title="Latest diagnosis" value={latest?.predicted_disease ?? latestText?.result?.predictedDisease ?? "No checks"} icon={Heart} />
+        <MetricCard title="Report analysis" value={latestReport?.diagnosis ? latestReport.diagnosis.slice(0, 32) : "No reports"} icon={FileText} />
+        <MetricCard title="Risk level" value={latest?.risk_level ?? latestReport?.riskLevel ?? "Low"} icon={Shield} />
+        <MetricCard title="Profile complete" value={`${profileCompletion}%`} icon={User} />
       </div>
 
-      {/* Health Score & Charts */}
       <div className="grid gap-5 lg:grid-cols-3">
         <Reveal>
-          <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-semibold text-slate-600 uppercase tracking-wide">Health score</h3>
-              <Activity className="h-4 w-4 text-blue-600" />
+          <HoloPanel className="h-full">
+            <div className="mb-5 flex items-center justify-between">
+              <h3 className="text-xs font-medium uppercase tracking-[0.16em] text-silver">Health score</h3>
+              <Activity className="h-4 w-4 text-starlight" />
             </div>
-            <MetricRing value={healthScore} label="" tone="blue" />
-            <div className="mt-6 grid grid-cols-2 gap-3">
-              <div className="rounded-lg bg-slate-50 p-3">
-                <p className="text-xs font-semibold text-slate-500 uppercase">Risk load</p>
-                <p className="mt-2 text-xl font-bold text-slate-900">{riskValue}%</p>
-              </div>
-              <div className="rounded-lg bg-slate-50 p-3">
-                <p className="text-xs font-semibold text-slate-500 uppercase">Confidence</p>
-                <p className="mt-2 text-xl font-bold text-slate-900">{latestConfidence || 0}%</p>
-              </div>
+            <MetricRing value={healthScore} label="" />
+            <div className="mt-7 grid grid-cols-2 gap-3">
+              <SmallStat label="Risk load" value={`${riskValue}%`} />
+              <SmallStat label="Confidence" value={`${latestConfidence || 0}%`} />
             </div>
-          </div>
+          </HoloPanel>
         </Reveal>
 
         <Reveal delay={0.04}>
-          <div className="lg:col-span-2 rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
-            <div className="border-b border-slate-200 bg-slate-50 p-4">
-              <div className="flex items-center gap-3">
-                <TrendingUp className="h-4 w-4 text-blue-600" />
-                <h3 className="text-sm font-semibold text-slate-900">Prediction confidence</h3>
+          <HoloPanel className="lg:col-span-2">
+            <div className="mb-5 flex items-center gap-3">
+              <TrendingUp className="h-4 w-4 text-starlight" />
+              <h3 className="text-sm font-medium text-starlight">Prediction confidence</h3>
+            </div>
+            {confidenceData.length > 0 ? (
+              <div className="h-72">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={confidenceData}>
+                    <defs>
+                      <linearGradient id="confidence-grad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#5266eb" stopOpacity={0.3} />
+                        <stop offset="95%" stopColor="#5266eb" stopOpacity={0.02} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(112,112,125,0.28)" />
+                    <XAxis dataKey="name" tick={{ fontSize: 12, fill: "#c3c3cc" }} stroke="#70707d" />
+                    <YAxis tick={{ fontSize: 12, fill: "#c3c3cc" }} stroke="#70707d" domain={[0, 100]} />
+                    <Tooltip contentStyle={tooltipStyle} />
+                    <Area type="monotone" dataKey="confidence" stroke="#5266eb" strokeWidth={2} fill="url(#confidence-grad)" />
+                  </AreaChart>
+                </ResponsiveContainer>
               </div>
-            </div>
-            <div className="p-6">
-              {confidenceData.length > 0 ? (
-                <div className="h-72">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={confidenceData}>
-                      <defs>
-                        <linearGradient id="confidence-grad" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#0066cc" stopOpacity={0.2} />
-                          <stop offset="95%" stopColor="#0066cc" stopOpacity={0.02} />
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                      <XAxis dataKey="name" tick={{ fontSize: 12 }} stroke="#94a3b8" />
-                      <YAxis tick={{ fontSize: 12 }} stroke="#94a3b8" domain={[0, 100]} />
-                      <Tooltip contentStyle={{ backgroundColor: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "8px" }} />
-                      <Area type="monotone" dataKey="confidence" stroke="#0066cc" strokeWidth={2} fill="url(#confidence-grad)" />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                </div>
-              ) : <EmptyState text="Run a symptom check to build your confidence graph." />}
-            </div>
-          </div>
+            ) : <EmptyState text="Run a symptom check to build your confidence graph." />}
+          </HoloPanel>
         </Reveal>
       </div>
 
-      {/* Lab Trends */}
       <div className="grid gap-5 lg:grid-cols-2">
-        <TrendCard 
-          title="Platelet levels" 
-          data={reportData} 
-          dataKey="platelets" 
-          stroke="#0066cc" 
-          empty="Upload CBC reports to track platelet trends." 
-        />
-        <TrendCard 
-          title="WBC activity" 
-          data={reportData} 
-          dataKey="wbc" 
-          stroke="#0a8863" 
-          empty="Upload CBC reports to track WBC trends." 
-        />
+        <TrendCard title="Platelet levels" data={reportData} dataKey="platelets" empty="Upload CBC reports to track platelet trends." />
+        <TrendCard title="WBC activity" data={reportData} dataKey="wbc" empty="Upload CBC reports to track WBC trends." />
       </div>
 
-      {/* Recommendations & Timeline */}
-      <div className="grid gap-5 lg:grid-cols-[0.6fr_1fr]">
+      <div className="grid gap-5 lg:grid-cols-[0.62fr_1fr]">
         <Reveal>
-          <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h3 className="text-sm font-semibold text-slate-900 uppercase tracking-wide mb-4">AI Recommendations</h3>
+          <HoloPanel>
+            <h3 className="mb-4 text-xs font-medium uppercase tracking-[0.16em] text-silver">AI recommendations</h3>
             <div className="space-y-3">
               {recommendationItems.slice(0, 5).map((item, index) => (
-                <motion.div 
-                  key={`${item}-${index}`} 
-                  whileHover={{ x: 2 }} 
-                  className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700 leading-relaxed"
-                >
+                <motion.div key={`${item}-${index}`} whileHover={{ x: 3 }} className="border border-lead/35 bg-graphite/46 p-4 text-sm leading-6 text-silver">
                   {item}
                 </motion.div>
               ))}
-              {recommendationItems.length === 0 && (
-                <p className="text-sm text-slate-500 p-3 rounded-lg bg-slate-50">
-                  Recommendations appear after health checks and report analysis.
-                </p>
-              )}
+              {recommendationItems.length === 0 && <EmptyState text="Recommendations appear after health checks and report analysis." />}
             </div>
-          </div>
+          </HoloPanel>
         </Reveal>
 
         <Reveal delay={0.04}>
-          <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-            <div className="flex items-center gap-2 mb-5">
-              <Calendar className="h-4 w-4 text-blue-600" />
-              <h3 className="text-sm font-semibold text-slate-900 uppercase tracking-wide">Health timeline</h3>
+          <HoloPanel>
+            <div className="mb-5 flex items-center gap-2">
+              <Calendar className="h-4 w-4 text-starlight" />
+              <h3 className="text-xs font-medium uppercase tracking-[0.16em] text-silver">Health timeline</h3>
             </div>
-            <div className="space-y-4">
-              <TimelineSection 
-                title="Symptoms" 
-                items={symptoms.slice(0, 3).map((item) => `${item.predicted_disease} — ${percent(item.confidence_score)} confidence`)} 
-                empty="No symptom checks yet."
-              />
-              <TimelineSection 
-                title="Reports" 
-                items={reports.slice(0, 3).map((item) => `${item.file_name ?? "Report"} — ${item.riskLevel ?? "low"} risk`)} 
-                empty="No reports uploaded yet."
-              />
-              <TimelineSection 
-                title="Messages" 
-                items={messages.slice(0, 3).map((item) => item.user_message?.substring(0, 40) + "...")} 
-                empty="No conversations yet."
-              />
+            <div className="space-y-5">
+              <TimelineSection title="Symptoms" items={symptoms.slice(0, 3).map((item) => `${item.predicted_disease} - ${percent(item.confidence_score)} confidence`)} empty="No symptom checks yet." />
+              <TimelineSection title="Reports" items={reports.slice(0, 3).map((item) => `${item.file_name ?? "Report"} - ${item.riskLevel ?? "low"} risk`)} empty="No reports uploaded yet." />
+              <TimelineSection title="Messages" items={messages.slice(0, 3).map((item) => `${item.user_message?.substring(0, 40) ?? "Message"}...`)} empty="No conversations yet." />
             </div>
-          </div>
+          </HoloPanel>
         </Reveal>
       </div>
 
-      {/* Risk Radar */}
       <Reveal>
-        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-          <div className="flex items-center gap-2 mb-5">
-            <BarChart3 className="h-4 w-4 text-blue-600" />
-            <h3 className="text-sm font-semibold text-slate-900 uppercase tracking-wide">Health indicators</h3>
-          </div>
-          <div className="h-72">
-            <ResponsiveContainer width="100%" height="100%">
-              <RadialBarChart innerRadius="30%" outerRadius="90%" data={[
-                { name: "Profile", value: profileCompletion, fill: "#0066cc" },
-                { name: "Reports", value: Math.min(100, reports.length * 20), fill: "#0a8863" },
-                { name: "Symptoms", value: Math.min(100, symptoms.length * 24), fill: "#6b5b95" },
-                { name: "Risk", value: riskValue, fill: "#f59e0b" }
-              ]} startAngle={90} endAngle={-270}>
-                <PolarAngleAxis type="number" domain={[0, 100]} tick={false} />
-                <RadialBar background dataKey="value" cornerRadius={10} />
-                <Tooltip contentStyle={{ backgroundColor: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "8px" }} />
-              </RadialBarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-      </Reveal>
-
-      {/* Profile Summary */}
-      <Reveal>
-        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h3 className="text-sm font-semibold text-slate-900 uppercase tracking-wide mb-5">Your profile</h3>
+        <HoloPanel>
+          <h3 className="mb-5 text-xs font-medium uppercase tracking-[0.16em] text-silver">Your profile</h3>
           <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-4">
             <ProfileField label="Name" value={profile?.name ?? "Complete profile"} />
             <ProfileField label="Blood type" value={profile?.blood_group ?? "Not set"} />
             <ProfileField label="Age" value={profile?.age ? `${profile.age} yrs` : "Not set"} />
             <ProfileField label="Emergency contact" value={profile?.emergency_contact ?? "Not set"} />
           </div>
-        </div>
+        </HoloPanel>
       </Reveal>
     </div>
   );
@@ -278,74 +192,55 @@ export function DashboardClient() {
 
 function StatBox({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-lg bg-white/15 backdrop-blur border border-white/20 p-3">
-      <p className="text-xs font-semibold text-blue-100 uppercase tracking-wider">{label}</p>
-      <p className="mt-2 text-2xl font-bold">{value}</p>
+    <div className="border border-lead/30 bg-graphite/50 p-4">
+      <p className="text-xs font-medium uppercase tracking-[0.16em] text-silver">{label}</p>
+      <p className="mt-2 font-arcadiaDisplay text-heading-sm font-light text-starlight">{value}</p>
     </div>
   );
 }
 
-function MetricCard({ 
-  title, 
-  value, 
-  icon: Icon, 
-  color 
-}: { 
-  title: string; 
-  value: string; 
-  icon: typeof Heart; 
-  color: "blue" | "amber" | "emerald" 
-}) {
-  const bgColor = color === "blue" ? "bg-blue-50 text-blue-600" : color === "amber" ? "bg-amber-50 text-amber-600" : "bg-emerald-50 text-emerald-600";
-  
+function SmallStat({ label, value }: { label: string; value: string }) {
   return (
-    <motion.div whileHover={{ y: -2 }} className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm hover:shadow-md transition-shadow">
-      <div className={`inline-flex items-center justify-center h-10 w-10 rounded-lg ${bgColor} mb-3`}>
+    <div className="border border-lead/30 bg-graphite/44 p-4">
+      <p className="text-xs font-medium uppercase tracking-[0.14em] text-silver">{label}</p>
+      <p className="mt-2 text-xl font-medium text-starlight">{value}</p>
+    </div>
+  );
+}
+
+function MetricCard({ title, value, icon: Icon }: { title: string; value: string; icon: typeof Heart }) {
+  return (
+    <motion.div whileHover={{ y: -2 }} className="border border-lead/35 bg-midnight-slate/72 p-5 transition-colors hover:bg-graphite/65">
+      <div className="mb-4 grid h-10 w-10 place-items-center rounded-[4px] border border-ghost-blue/15 bg-graphite text-starlight">
         <Icon className="h-5 w-5" />
       </div>
-      <p className="text-sm font-semibold text-slate-600">{title}</p>
-      <p className="mt-2 text-2xl font-bold text-slate-900 truncate">{value}</p>
+      <p className="text-sm text-silver">{title}</p>
+      <p className="mt-2 truncate font-arcadiaDisplay text-heading-sm font-light text-starlight">{value}</p>
     </motion.div>
   );
 }
 
-function TrendCard({ 
-  title, 
-  data, 
-  dataKey, 
-  stroke, 
-  empty 
-}: { 
-  title: string; 
-  data: Array<Record<string, string | number | undefined>>; 
-  dataKey: "platelets" | "wbc" | "hemoglobin"; 
-  stroke: string; 
-  empty: string 
-}) {
+function TrendCard({ title, data, dataKey, empty }: { title: string; data: Array<Record<string, string | number | undefined>>; dataKey: "platelets" | "wbc" | "hemoglobin"; empty: string }) {
   const usable = data.some((item) => item[dataKey] !== undefined);
-  
+
   return (
     <Reveal>
-      <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
-        <div className="border-b border-slate-200 bg-slate-50 p-4">
-          <h3 className="text-sm font-semibold text-slate-900">{title}</h3>
-        </div>
-        <div className="p-6">
-          {usable ? (
-            <div className="h-72">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={data}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                  <XAxis dataKey="name" tick={{ fontSize: 12 }} stroke="#94a3b8" />
-                  <YAxis tick={{ fontSize: 12 }} stroke="#94a3b8" />
-                  <Tooltip contentStyle={{ backgroundColor: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "8px" }} />
-                  <Line type="monotone" dataKey={dataKey} stroke={stroke} strokeWidth={2} dot={{ r: 3, fill: stroke }} />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          ) : <EmptyState text={empty} />}
-        </div>
-      </div>
+      <HoloPanel>
+        <h3 className="mb-5 text-sm font-medium text-starlight">{title}</h3>
+        {usable ? (
+          <div className="h-72">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={data}>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(112,112,125,0.28)" />
+                <XAxis dataKey="name" tick={{ fontSize: 12, fill: "#c3c3cc" }} stroke="#70707d" />
+                <YAxis tick={{ fontSize: 12, fill: "#c3c3cc" }} stroke="#70707d" />
+                <Tooltip contentStyle={tooltipStyle} />
+                <Line type="monotone" dataKey={dataKey} stroke="#5266eb" strokeWidth={2} dot={{ r: 3, fill: "#5266eb" }} />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        ) : <EmptyState text={empty} />}
+      </HoloPanel>
     </Reveal>
   );
 }
@@ -353,14 +248,10 @@ function TrendCard({
 function TimelineSection({ title, items, empty }: { title: string; items: string[]; empty: string }) {
   return (
     <div>
-      <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide mb-2">{title}</p>
+      <p className="mb-2 text-xs font-medium uppercase tracking-[0.16em] text-silver">{title}</p>
       <div className="space-y-2">
-        {items.map((item, index) => (
-          <p key={`${item}-${index}`} className="text-sm text-slate-700 p-2 rounded bg-slate-50">
-            {item}
-          </p>
-        ))}
-        {items.length === 0 && <p className="text-sm text-slate-500 p-2 rounded bg-slate-50">{empty}</p>}
+        {items.map((item, index) => <p key={`${item}-${index}`} className="border border-lead/30 bg-graphite/44 p-3 text-sm text-silver">{item}</p>)}
+        {items.length === 0 && <p className="border border-lead/30 bg-graphite/44 p-3 text-sm text-silver">{empty}</p>}
       </div>
     </div>
   );
@@ -368,15 +259,15 @@ function TimelineSection({ title, items, empty }: { title: string; items: string
 
 function ProfileField({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-lg bg-slate-50 p-4">
-      <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">{label}</p>
-      <p className="mt-2 font-semibold text-slate-900">{value}</p>
+    <div className="border border-lead/30 bg-graphite/44 p-4">
+      <p className="text-xs font-medium uppercase tracking-[0.16em] text-silver">{label}</p>
+      <p className="mt-2 text-sm font-medium text-starlight">{value}</p>
     </div>
   );
 }
 
 function EmptyState({ text }: { text: string }) {
-  return <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 p-6 text-center text-sm text-slate-500">{text}</div>;
+  return <div className="border border-dashed border-lead/45 bg-graphite/32 p-6 text-center text-sm text-silver">{text}</div>;
 }
 
 function riskToValue(risk?: string) {

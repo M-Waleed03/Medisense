@@ -9,11 +9,11 @@ export default function Error({ error, reset }: { error: Error & { digest?: stri
   }, [error]);
 
   return (
-    <main className="grid min-h-screen place-items-center px-4">
-      <div className="max-w-md rounded-lg border border-red-100 bg-white p-6 shadow-sm">
-        <p className="text-sm font-semibold uppercase tracking-[0.16em] text-red-600">MEDISENSE</p>
-        <h1 className="mt-2 text-2xl font-black text-slate-950">Something needs a refresh</h1>
-        <p className="mt-3 text-sm leading-6 text-slate-600">{error.message || "The page hit an unexpected error while loading."}</p>
+    <main className="grid min-h-screen place-items-center bg-deep-space px-4">
+      <div className="max-w-md border border-lead/35 bg-midnight-slate p-6">
+        <p className="text-sm font-medium uppercase tracking-[0.16em] text-silver">MEDISENSE</p>
+        <h1 className="mt-2 font-arcadiaDisplay text-heading-sm font-light text-starlight">Something needs a refresh</h1>
+        <p className="mt-3 text-sm leading-6 text-silver">{error.message || "The page hit an unexpected error while loading."}</p>
         <Button className="mt-5" onClick={reset}>Try again</Button>
       </div>
     </main>

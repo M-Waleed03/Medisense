@@ -67,25 +67,25 @@ export function SettingsClient() {
 
   return (
     <div className="grid gap-5 lg:grid-cols-2">
-      {error && <Card className="border-red-100 bg-red-50 text-sm text-red-700 lg:col-span-2">Settings could not be loaded from Firestore. Sign in again, check Firebase rules, and try again.</Card>}
+      {error && <Card className="text-sm text-starlight lg:col-span-2">Settings could not be loaded from Firestore. Sign in again, check Firebase rules, and try again.</Card>}
       <HoloPanel>
-        <UserRound className="mb-4 h-5 w-5 text-primary" />
+        <UserRound className="mb-4 h-5 w-5 text-starlight" />
         <SignalBadge>Account</SignalBadge>
-        <h2 className="mt-4 text-2xl font-black text-ink">Account settings</h2>
-        <p className="mt-2 text-sm text-muted">Manage the profile connected to your authenticated MEDISENSE account.</p>
+        <h2 className="mt-4 font-arcadiaDisplay text-heading-sm font-light text-starlight">Account settings</h2>
+        <p className="mt-2 text-sm text-silver">Manage the profile connected to your authenticated MEDISENSE account.</p>
         <Link href="/profile" className={buttonStyles({ className: "mt-4", variant: "outline" })}>Open profile</Link>
       </HoloPanel>
       <HoloPanel>
-        <Shield className="mb-4 h-5 w-5 text-primary" />
+        <Shield className="mb-4 h-5 w-5 text-starlight" />
         <SignalBadge>Security</SignalBadge>
-        <h2 className="mt-4 text-2xl font-black text-ink">Security settings</h2>
-        <p className="mt-2 text-sm text-muted">Use Firebase secure sessions and reset your password by email.</p>
+        <h2 className="mt-4 font-arcadiaDisplay text-heading-sm font-light text-starlight">Security settings</h2>
+        <p className="mt-2 text-sm text-silver">Use Firebase secure sessions and reset your password by email.</p>
         <Button className="mt-4" variant="outline" onClick={resetPassword}>Send reset email</Button>
         <Button className="ml-2 mt-4" onClick={logout}>Logout</Button>
       </HoloPanel>
       <HoloPanel>
-        <Bell className="mb-4 h-5 w-5 text-primary" />
-        <h2 className="text-2xl font-black text-ink">Notification preferences</h2>
+        <Bell className="mb-4 h-5 w-5 text-starlight" />
+        <h2 className="font-arcadiaDisplay text-heading-sm font-light text-starlight">Notification preferences</h2>
         <div className="mt-4 space-y-3">
           <Toggle label="Email notifications" checked={settings.email_notifications} onChange={(value) => update.mutate({ email_notifications: value })} />
           <Toggle label="Report alerts" checked={settings.report_alerts} onChange={(value) => update.mutate({ report_alerts: value })} />
@@ -93,27 +93,27 @@ export function SettingsClient() {
         </div>
       </HoloPanel>
       <HoloPanel>
-        <Moon className="mb-4 h-5 w-5 text-primary" />
-        <h2 className="text-2xl font-black text-ink">Theme preferences</h2>
-        <select className="mt-4 h-11 w-full rounded-lg border border-white/80 bg-white/78 px-3 shadow-inner outline-primary" value={settings.theme} onChange={(event) => update.mutate({ theme: event.target.value as UserSettings["theme"] })}>
-          <option value="light">Light medical theme</option>
+        <Moon className="mb-4 h-5 w-5 text-starlight" />
+        <h2 className="font-arcadiaDisplay text-heading-sm font-light text-starlight">Theme preferences</h2>
+        <select className="premium-input mt-4" value={settings.theme} onChange={(event) => update.mutate({ theme: event.target.value as UserSettings["theme"] })}>
+          <option value="light">Command-center dark</option>
           <option value="system">Use system preference</option>
         </select>
       </HoloPanel>
       <HoloPanel className="lg:col-span-2">
-        <Trash2 className="mb-4 h-5 w-5 text-red-500" />
-        <h2 className="text-2xl font-black text-ink">Delete account</h2>
-        <p className="mt-2 text-sm text-muted">Deletion must be handled by a protected backend admin endpoint to remove auth and database records together.</p>
+        <Trash2 className="mb-4 h-5 w-5 text-starlight" />
+        <h2 className="font-arcadiaDisplay text-heading-sm font-light text-starlight">Delete account</h2>
+        <p className="mt-2 text-sm text-silver">Deletion must be handled by a protected backend admin endpoint to remove auth and database records together.</p>
         <Button className="mt-4" variant="outline" onClick={deleteAccount}>Request deletion</Button>
       </HoloPanel>
-      {message && <Card className="text-sm text-slate-700 lg:col-span-2">{update.isPending && <Loader2 className="mr-2 inline h-4 w-4 animate-spin" />}<Save className="mr-2 inline h-4 w-4 text-primary" />{message}</Card>}
+      {message && <Card className="text-sm text-starlight lg:col-span-2">{update.isPending && <Loader2 className="mr-2 inline h-4 w-4 animate-spin" />}<Save className="mr-2 inline h-4 w-4 text-starlight" />{message}</Card>}
     </div>
   );
 }
 
 function Toggle({ label, checked, onChange }: { label: string; checked: boolean; onChange: (checked: boolean) => void }) {
   return (
-    <label className="flex items-center justify-between rounded-lg border border-white/80 bg-white/70 p-3 text-sm font-semibold text-slate-700 shadow-sm">
+    <label className="flex items-center justify-between border border-lead/35 bg-graphite/40 p-3 text-sm font-medium text-silver">
       {label}
       <input type="checkbox" checked={checked} onChange={(event) => onChange(event.target.checked)} />
     </label>

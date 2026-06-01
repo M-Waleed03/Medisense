@@ -151,13 +151,13 @@ export function SymptomChecker() {
     <div className="grid gap-5 xl:grid-cols-[1fr_0.42fr]">
       <div className="space-y-5">
         <HoloPanel className="overflow-hidden p-0">
-          <div className="grid gap-5 border-b border-white/80 bg-white/68 p-5 lg:grid-cols-[1fr_auto] lg:items-center">
+          <div className="grid gap-5 border-b border-lead/30 bg-graphite/30 p-5 lg:grid-cols-[1fr_auto] lg:items-center">
             <div>
               <SignalBadge icon="pulse">Clinical intake wizard</SignalBadge>
-              <h2 className="mt-4 text-3xl font-black text-ink">AI-guided symptom scanner</h2>
-              <p className="mt-2 max-w-3xl text-sm leading-6 text-muted">A cinematic triage flow that combines fever pattern, body signals, exposure history, and risk modifiers before prediction.</p>
+              <h2 className="mt-4 font-arcadiaDisplay text-heading font-light text-starlight">AI-guided symptom scanner</h2>
+              <p className="mt-2 max-w-3xl text-sm leading-6 text-silver">A cinematic triage flow that combines fever pattern, body signals, exposure history, and risk modifiers before prediction.</p>
             </div>
-            <MetricRing value={completedSections * 25} label="Completion" tone="blue" />
+            <MetricRing value={completedSections * 25} label="Completion" />
           </div>
           <div className="grid gap-5 p-5 lg:grid-cols-[0.72fr_1fr]">
             <BodyScan selectedCount={selected.length} step={step} />
@@ -191,7 +191,7 @@ export function SymptomChecker() {
                 key={group.title}
                 type="button"
                 onClick={() => setStep(index)}
-                className={`rounded-lg border px-4 py-2 text-sm font-black transition ${step === index ? "border-primary/30 bg-blue-50 text-primary shadow-sm" : "border-white/80 bg-white/70 text-slate-600 hover:bg-white"}`}
+                className={`rounded-pill border px-4 py-2 text-sm font-medium transition ${step === index ? "border-ghost-blue/20 bg-ghost-blue/12 text-starlight" : "border-lead/40 bg-transparent text-silver hover:bg-ghost-blue/10 hover:text-starlight"}`}
               >
                 {index + 1}. {group.title}
               </button>
@@ -206,12 +206,12 @@ export function SymptomChecker() {
               transition={{ duration: 0.32 }}
             >
               <div className="flex items-start gap-4">
-                <span className="grid h-12 w-12 shrink-0 place-items-center rounded-lg bg-blue-50 text-primary shadow-sm">
+                <span className="grid h-12 w-12 shrink-0 place-items-center rounded-[4px] border border-ghost-blue/15 bg-graphite text-starlight">
                   <activeGroup.icon className="h-6 w-6" />
                 </span>
                 <div>
-                  <h3 className="text-2xl font-black text-ink">{activeGroup.title}</h3>
-                  <p className="mt-1 text-sm leading-6 text-muted">{activeGroup.description}</p>
+                  <h3 className="font-arcadiaDisplay text-heading-sm font-light text-starlight">{activeGroup.title}</h3>
+                  <p className="mt-1 text-sm leading-6 text-silver">{activeGroup.description}</p>
                 </div>
               </div>
               <div className="mt-5 flex flex-wrap gap-2">
@@ -223,7 +223,7 @@ export function SymptomChecker() {
                       type="button"
                       whileTap={{ scale: 0.96 }}
                       onClick={() => toggle(symptom)}
-                      className={`rounded-lg border px-3 py-2 text-sm font-bold transition ${active ? "border-primary/40 bg-gradient-to-r from-blue-50 to-cyan-50 text-primary shadow-sm" : "border-white/80 bg-white/76 text-slate-600 hover:border-primary/30 hover:bg-white"}`}
+                      className={`rounded-pill border px-3 py-2 text-sm font-medium transition ${active ? "border-primary/50 bg-primary text-pure-white" : "border-lead/40 bg-graphite/35 text-silver hover:border-ghost-blue/35 hover:bg-ghost-blue/10 hover:text-starlight"}`}
                     >
                       {active ? "Active: " : ""}{symptom}
                     </motion.button>
@@ -241,8 +241,8 @@ export function SymptomChecker() {
         <HoloPanel>
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div>
-              <h3 className="text-2xl font-black text-ink">Selected clinical signal</h3>
-              <p className="mt-1 text-sm text-muted">Review the payload before MEDISENSE starts the scan.</p>
+              <h3 className="font-arcadiaDisplay text-heading-sm font-light text-starlight">Selected clinical signal</h3>
+              <p className="mt-1 text-sm text-silver">Review the payload before MEDISENSE starts the scan.</p>
             </div>
             <div className="flex gap-2">
               <Button variant="outline" onClick={reset} disabled={loading || textLoading}>
@@ -256,17 +256,17 @@ export function SymptomChecker() {
             </div>
           </div>
           <div className="mt-4 flex flex-wrap gap-2">
-            {selectedSummary.map((item) => <span key={item} className="rounded-lg border border-white/80 bg-white/76 px-3 py-2 text-sm font-bold text-slate-700">{item}</span>)}
+            {selectedSummary.map((item) => <span key={item} className="rounded-pill border border-lead/40 bg-graphite/40 px-3 py-2 text-sm font-medium text-silver">{item}</span>)}
           </div>
           {loading && <div className="mt-5"><ScannerLoader label="Scanning symptom constellation" /></div>}
-          {error && <p className="mt-4 rounded-lg bg-red-50 p-3 text-sm font-bold text-red-700">{error}</p>}
+          {error && <p className="mt-4 border border-lead/40 bg-graphite/70 p-3 text-sm font-medium text-starlight">{error}</p>}
         </HoloPanel>
 
         <HoloPanel>
-          <h3 className="text-2xl font-black text-ink">Natural language symptom capture</h3>
-          <p className="mt-1 text-sm text-muted">Use this when a checklist cannot capture the full story.</p>
+          <h3 className="font-arcadiaDisplay text-heading-sm font-light text-starlight">Natural language symptom capture</h3>
+          <p className="mt-1 text-sm text-silver">Use this when a checklist cannot capture the full story.</p>
           <textarea
-            className="mt-4 min-h-32 w-full rounded-lg border border-white/80 bg-white/76 px-4 py-3 text-sm shadow-inner outline-primary"
+            className="premium-input mt-4 min-h-32 rounded-[32px] py-3"
             placeholder="I have high fever at night, chills, sweating, headache, and weakness for three days."
             value={textSymptoms}
             onChange={(event) => setTextSymptoms(event.target.value)}
@@ -276,8 +276,8 @@ export function SymptomChecker() {
             Analyze text symptoms
           </Button>
           {textResult && (
-            <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50/80 p-4 text-sm text-emerald-950">
-              <p className="font-black">{textResult.predictedDisease} - {percent(textResult.confidence)}</p>
+            <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="mt-4 border border-lead/40 bg-graphite/50 p-4 text-sm text-starlight">
+              <p className="font-medium">{textResult.predictedDisease} - {percent(textResult.confidence)}</p>
               <p className="mt-2 leading-6">{textResult.explanation}</p>
               <p className="mt-2 font-bold">{textResult.suggestedNextStep}</p>
             </motion.div>
@@ -287,16 +287,16 @@ export function SymptomChecker() {
 
       <HoloPanel className="h-fit xl:sticky xl:top-6">
         <div className="flex items-center gap-3">
-          <Stethoscope className="h-6 w-6 text-primary" />
-          <h2 className="text-2xl font-black text-ink">Cinematic result reveal</h2>
+          <Stethoscope className="h-6 w-6 text-starlight" />
+          <h2 className="font-arcadiaDisplay text-heading-sm font-light text-starlight">Cinematic result reveal</h2>
         </div>
         {result ? (
           <motion.div initial={{ opacity: 0, y: 18, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} className="mt-5 space-y-5">
-            <MetricRing value={Math.round((result.confidence <= 1 ? result.confidence * 100 : result.confidence))} label="Confidence" tone={result.riskLevel?.toLowerCase().includes("high") ? "amber" : "teal"} />
+            <MetricRing value={Math.round((result.confidence <= 1 ? result.confidence * 100 : result.confidence))} label="Confidence" />
             <div>
-              <p className="text-sm font-bold text-slate-500">Predicted disease</p>
-              <p className="mt-1 text-3xl font-black text-ink">{result.predictedDisease ?? result.prediction}</p>
-              <p className="mt-2 text-sm font-black uppercase tracking-[0.14em] text-primary">{result.riskLevel} risk</p>
+              <p className="text-sm font-medium text-silver">Predicted disease</p>
+              <p className="mt-1 font-arcadiaDisplay text-heading font-light text-starlight">{result.predictedDisease ?? result.prediction}</p>
+              <p className="mt-2 text-sm font-medium uppercase tracking-[0.14em] text-silver">{result.riskLevel} risk</p>
             </div>
             <PulseLine />
             <ResultList title="Possible diseases" items={(result.possibleDiseases ?? []).map((item) => `${item.disease} - ${percent(item.confidence)}`)} icon={BrainCircuit} />
@@ -304,10 +304,10 @@ export function SymptomChecker() {
             <ResultList title="Precautions" items={result.precautions ?? result.recommendations ?? []} icon={ShieldAlert} />
             {result.doctorAdvice && <ResultNote title="Doctor advice" text={result.doctorAdvice} />}
             {result.medicineGuidance && <ResultNote title="Medicine guidance" text={result.medicineGuidance} />}
-            {result.disclaimer && <p className="rounded-lg bg-slate-50 p-3 text-xs font-semibold leading-5 text-slate-500">{result.disclaimer}</p>}
+            {result.disclaimer && <p className="bg-graphite/45 p-3 text-xs font-medium leading-5 text-silver">{result.disclaimer}</p>}
           </motion.div>
         ) : (
-          <div className="mt-5 rounded-lg border border-dashed border-slate-200 bg-white/56 p-5 text-sm leading-6 text-muted">
+          <div className="mt-5 border border-dashed border-lead/45 bg-graphite/35 p-5 text-sm leading-6 text-silver">
             Complete the wizard and run a prediction. Results are saved to Firestore for your synchronized history after the API responds.
           </div>
         )}
@@ -318,7 +318,7 @@ export function SymptomChecker() {
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <label className="block text-sm font-bold text-slate-700">
+    <label className="block text-sm font-medium text-silver">
       {label}
       {children}
     </label>
@@ -328,18 +328,18 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 function BodyScan({ selectedCount, step }: { selectedCount: number; step: number }) {
   const y = [35, 62, 48, 76][step] ?? 44;
   return (
-    <div className="relative min-h-72 overflow-hidden rounded-lg border border-white/80 bg-gradient-to-br from-white/84 to-blue-50/64 p-5 shadow-inner">
-      <div className="absolute inset-0 mesh opacity-40" />
+    <div className="relative min-h-72 overflow-hidden rounded-none border border-lead/35 bg-deep-space/70 p-5">
+      <div className="absolute inset-0 mesh opacity-50" />
       <div className="relative mx-auto grid h-64 max-w-56 place-items-center">
-        <svg viewBox="0 0 160 260" className="h-full w-full text-primary/80" aria-hidden="true">
+        <svg viewBox="0 0 160 260" className="h-full w-full text-ghost-blue/70" aria-hidden="true">
           <circle cx="80" cy="35" r="24" fill="currentColor" opacity="0.12" stroke="currentColor" strokeWidth="2" />
           <path d="M80 62 C55 62 44 80 44 112 V165 C44 190 58 214 80 228 C102 214 116 190 116 165 V112 C116 80 105 62 80 62Z" fill="currentColor" opacity="0.1" stroke="currentColor" strokeWidth="2" />
           <path d="M45 112 C20 128 16 154 28 184 M115 112 C140 128 144 154 132 184 M62 224 L48 256 M98 224 L112 256" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-          <line x1="28" x2="132" y1={y} y2={y} stroke="#06B6D4" strokeWidth="3" strokeLinecap="round" opacity="0.8" />
+          <line x1="28" x2="132" y1={y} y2={y} stroke="#5266eb" strokeWidth="3" strokeLinecap="round" opacity="0.8" />
         </svg>
-        <div className="absolute bottom-4 left-4 right-4 rounded-lg border border-white/80 bg-white/78 p-3 text-center shadow-soft backdrop-blur-xl">
-          <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-500">Signals selected</p>
-          <p className="mt-1 text-2xl font-black text-ink">{selectedCount}</p>
+        <div className="absolute bottom-4 left-4 right-4 border border-lead/35 bg-midnight-slate/80 p-3 text-center backdrop-blur-xl">
+          <p className="text-xs font-medium uppercase tracking-[0.16em] text-silver">Signals selected</p>
+          <p className="mt-1 font-arcadiaDisplay text-heading-sm font-light text-starlight">{selectedCount}</p>
         </div>
       </div>
     </div>
@@ -350,9 +350,9 @@ function ResultList({ title, items, icon: Icon }: { title: string; items: string
   if (items.length === 0) return null;
   return (
     <div>
-      <p className="flex items-center gap-2 text-sm font-black text-ink"><Icon className="h-4 w-4 text-primary" />{title}</p>
+      <p className="flex items-center gap-2 text-sm font-medium text-starlight"><Icon className="h-4 w-4 text-starlight" />{title}</p>
       <ul className="mt-2 space-y-2 text-sm">
-        {items.map((item) => <li key={item} className="rounded-lg border border-white/80 bg-white/74 p-3 text-slate-700">{item}</li>)}
+        {items.map((item) => <li key={item} className="border border-lead/35 bg-graphite/45 p-3 text-silver">{item}</li>)}
       </ul>
     </div>
   );
@@ -360,8 +360,8 @@ function ResultList({ title, items, icon: Icon }: { title: string; items: string
 
 function ResultNote({ title, text }: { title: string; text: string }) {
   return (
-    <div className="rounded-lg border border-white/80 bg-white/80 p-3 text-sm text-slate-700">
-      <p className="font-black text-ink">{title}</p>
+    <div className="border border-lead/35 bg-graphite/45 p-3 text-sm text-silver">
+      <p className="font-medium text-starlight">{title}</p>
       <p className="mt-1 leading-6">{text}</p>
     </div>
   );

@@ -81,19 +81,19 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
   }
 
   return (
-    <HoloPanel className="mx-auto w-full max-w-md p-6">
+    <HoloPanel className="mx-auto w-full max-w-md p-7">
       <div className="mb-6">
         <AiAvatar />
         <div className="mt-5"><SignalBadge>{mode === "login" ? "Secure clinical session" : "Create care identity"}</SignalBadge></div>
-        <h1 className="mt-4 text-3xl font-black text-ink">{mode === "login" ? "Welcome back" : "Create your account"}</h1>
-        <p className="mt-2 text-sm leading-6 text-muted">Use the same Firebase-backed MEDISENSE account across web and mobile.</p>
+        <h1 className="mt-5 font-arcadiaDisplay text-heading font-light text-starlight">{mode === "login" ? "Welcome back" : "Create your account"}</h1>
+        <p className="mt-3 text-sm leading-6 text-silver">Use the same Firebase-backed MEDISENSE account across web and mobile.</p>
       </div>
       <form className="space-y-4" onSubmit={submit}>
         {mode === "signup" && (
-          <input className="h-12 w-full rounded-lg border border-white/80 bg-white/78 px-4 shadow-inner outline-primary" placeholder="Full name" value={name} onChange={(e) => setName(e.target.value)} required />
+          <input className="premium-input" placeholder="Full name" value={name} onChange={(e) => setName(e.target.value)} required />
         )}
-        <input className="h-12 w-full rounded-lg border border-white/80 bg-white/78 px-4 shadow-inner outline-primary" type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-        <input className="h-12 w-full rounded-lg border border-white/80 bg-white/78 px-4 shadow-inner outline-primary" type="password" placeholder="Password" minLength={6} value={password} onChange={(e) => setPassword(e.target.value)} required />
+        <input className="premium-input" type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+        <input className="premium-input" type="password" placeholder="Password" minLength={6} value={password} onChange={(e) => setPassword(e.target.value)} required />
         <Button type="submit" className="w-full" disabled={loading}>
           {loading && <Loader2 className="h-4 w-4 animate-spin" />}
           {mode === "login" ? "Sign in" : "Sign up"}
@@ -104,11 +104,11 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
         Continue with Google
       </Button>
       {mode === "login" && (
-        <button className="mt-3 text-sm font-semibold text-primary" type="button" onClick={resetPassword}>
+        <button className="mt-4 text-sm font-medium text-starlight" type="button" onClick={resetPassword}>
           Forgot password?
         </button>
       )}
-      {message && <p className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">{message}</p>}
+      {message && <p className="mt-4 border border-lead/40 bg-graphite/70 p-3 text-sm text-starlight">{message}</p>}
     </HoloPanel>
   );
 }

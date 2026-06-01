@@ -6,7 +6,7 @@ export default function LoginPage() {
     <main className="grid min-h-screen place-items-center px-4 py-10">
       <div className="w-full">
         <AuthForm mode="login" />
-        <p className="mt-5 text-center text-sm text-slate-600">New here? <Link className="font-semibold text-primary" href="/signup">Create an account</Link></p>
+        <p className="mt-5 text-center text-sm text-silver">New here? <Link className="font-medium text-starlight" href="/signup">Create an account</Link></p>
       </div>
     </main>
   );

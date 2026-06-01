@@ -55,23 +55,23 @@ export function ProfileClient() {
   }
 
   if (isLoading) return <Card className="h-72 max-w-4xl animate-pulse" />;
-  if (error) return <Card className="max-w-4xl text-sm text-red-700">Profile could not be loaded from Firestore. Sign in again, check Firebase rules, and refresh.</Card>;
+  if (error) return <Card className="max-w-4xl text-sm text-starlight">Profile could not be loaded from Firestore. Sign in again, check Firebase rules, and refresh.</Card>;
 
   return (
     <HoloPanel className="max-w-5xl">
       <div className="mb-6 flex items-center justify-between gap-4">
         <div>
           <SignalBadge>Patient identity graph</SignalBadge>
-          <h2 className="mt-4 text-3xl font-black text-ink">Health profile</h2>
-          <p className="mt-2 text-sm text-muted">This information is stored in Firestore and used to personalize history and guidance.</p>
+          <h2 className="mt-4 font-arcadiaDisplay text-heading font-light text-starlight">Health profile</h2>
+          <p className="mt-2 text-sm text-silver">This information is stored in Firestore and used to personalize history and guidance.</p>
         </div>
         <Button onClick={() => update.mutate(form)} disabled={update.isPending}>
           {update.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
           Save
         </Button>
       </div>
-      <div className="mb-6 flex flex-col gap-4 rounded-lg border border-white/80 bg-white/70 p-4 shadow-sm sm:flex-row sm:items-center">
-        <div className="grid h-24 w-24 place-items-center overflow-hidden rounded-lg bg-gradient-to-br from-blue-50 to-cyan-50 text-3xl font-black text-primary shadow-halo">
+      <div className="mb-6 flex flex-col gap-4 border border-lead/35 bg-graphite/35 p-4 sm:flex-row sm:items-center">
+        <div className="grid h-24 w-24 place-items-center overflow-hidden rounded-[4px] border border-ghost-blue/15 bg-graphite text-3xl font-medium text-starlight">
           {profile?.avatar_url ? (
             <div className="relative h-full w-full">
               <Image src={profile.avatar_url} alt="Profile photo" fill className="object-cover" />
@@ -80,7 +80,7 @@ export function ProfileClient() {
             (profile?.name?.slice(0, 1) ?? "M")
           )}
         </div>
-        <label className="inline-flex h-11 cursor-pointer items-center justify-center gap-2 rounded-lg border border-white/80 bg-white/78 px-4 text-sm font-semibold text-slate-700 shadow-sm hover:bg-white">
+        <label className="inline-flex h-11 cursor-pointer items-center justify-center gap-2 rounded-pill border border-lead/45 bg-transparent px-5 text-sm font-medium text-silver hover:bg-ghost-blue/10 hover:text-starlight">
           {uploadingAvatar ? <Loader2 className="h-4 w-4 animate-spin" /> : <UploadCloud className="h-4 w-4" />}
           Upload profile photo
           <input className="hidden" type="file" accept="image/png,image/jpeg,image/webp" onChange={(event) => uploadAvatar(event.target.files?.[0] ?? null)} />
@@ -100,17 +100,17 @@ export function ProfileClient() {
         <Field label="Emergency contact" value={value("emergency_contact")} onChange={(next) => setField("emergency_contact", next)} />
         <Field label="Address" value={value("address")} onChange={(next) => setField("address", next)} />
       </div>
-      {message && <p className="mt-5 rounded-lg bg-blue-50 p-3 text-sm text-blue-700">{message}</p>}
+      {message && <p className="mt-5 border border-lead/40 bg-graphite/60 p-3 text-sm text-starlight">{message}</p>}
     </HoloPanel>
   );
 }
 
 function Field({ label, value, onChange, disabled, type = "text" }: { label: string; value: string | number; onChange?: (value: string) => void; disabled?: boolean; type?: string }) {
   return (
-    <label className="block text-sm font-bold text-slate-600">
+    <label className="block text-sm font-medium text-silver">
       {label}
       <input
-        className="mt-2 h-12 w-full rounded-lg border border-white/80 bg-white/78 px-4 shadow-inner outline-primary disabled:bg-slate-50"
+        className="premium-input disabled:opacity-60"
         type={type}
         value={value ?? ""}
         disabled={disabled}
