@@ -25,7 +25,8 @@ function markerStatus(marker: string, value: number | null) {
     mch: { low: 27, high: 33, unit: "pg" },
     mchc: { low: 32, high: 36, unit: "g/dL" },
     neutrophils: { low: 40, high: 75, unit: "%" },
-    lymphocytes: { low: 20, high: 45, unit: "%" }
+    lymphocytes: { low: 20, high: 45, unit: "%" },
+    monocytes: { low: 2, high: 10, unit: "%" }
   };
   const range = ranges[marker];
   if (!range) return "unknown";
@@ -91,7 +92,7 @@ reportsRouter.post("/", requireAuth, upload.single("file"), async (req, res, nex
 
     if (error) throw error;
 
-    const markers = ["platelets", "wbc", "rbc", "hemoglobin", "hematocrit", "mcv", "mch", "mchc", "neutrophils", "lymphocytes"] as const;
+    const markers = ["platelets", "wbc", "rbc", "hemoglobin", "hematocrit", "mcv", "mch", "mchc", "neutrophils", "lymphocytes", "monocytes"] as const;
     await Promise.all([
       supabase.from("report_values").insert(markers.map((marker) => {
         const value = toNumber(extracted[marker]);
@@ -112,11 +113,12 @@ reportsRouter.post("/", requireAuth, upload.single("file"), async (req, res, nex
         summary: `Analyzed ${safeName}`,
         metadata: { flags: analysis.flags ?? [], extracted_values: extracted }
       }),
-      supabase.from("dashboard_analytics").insert([
-        { user_id: req.user!.id, metric: "platelets", value: toNumber(extracted.platelets), payload: { report_id: data.id } },
-        { user_id: req.user!.id, metric: "wbc", value: toNumber(extracted.wbc), payload: { report_id: data.id } },
-        { user_id: req.user!.id, metric: "hemoglobin", value: toNumber(extracted.hemoglobin), payload: { report_id: data.id } }
-      ])
+      supabase.from("dashboard_analytics").insert(markers.map((marker) => ({
+        user_id: req.user!.id,
+        metric: marker,
+        value: toNumber(extracted[marker]),
+        payload: { report_id: data.id }
+      })))
     ]).catch((sideEffectError) => console.warn("Unable to write report side-effect records", sideEffectError));
 
     res.status(201).json({ analysis, record: data });

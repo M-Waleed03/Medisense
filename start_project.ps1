@@ -1,15 +1,18 @@
-# MEDISENSE Startup Script
-# Prerequisites: Node.js, Python 3.11+, Tesseract OCR, Flutter SDK for mobile development.
+# MEDISENSE Startup Script - Single Command
+# Prerequisites: Node.js, Python 3.11+, npm
+# Starts: ML Service (port 8000), Backend (port 5000), Frontend (port 3000)
 
-Write-Host "Starting MEDISENSE Full-Stack Application..." -ForegroundColor Cyan
+Write-Host ""
+Write-Host "========================================" -ForegroundColor Cyan
+Write-Host "  MEDISENSE Full-Stack Startup" -ForegroundColor Cyan
+Write-Host "========================================" -ForegroundColor Cyan
+Write-Host ""
 
 $root = Split-Path -Parent $MyInvocation.MyCommand.Path
-$logDir = Join-Path $root ".logs"
-New-Item -ItemType Directory -Force -Path $logDir | Out-Null
+$mlDir = Join-Path $root "ml"
 
 function Stop-PortListener {
   param([int]$Port)
-
   $listeners = netstat -ano | Select-String "LISTENING" | Select-String "[:.]$Port\s+"
   $processIds = @()
   foreach ($listener in $listeners) {
@@ -18,72 +21,88 @@ function Stop-PortListener {
       $processIds += [int]$parts[-1]
     }
   }
-
   foreach ($listenerPid in ($processIds | Sort-Object -Unique)) {
     if ($listenerPid -and $listenerPid -ne $PID) {
-      Write-Host "Stopping existing process on port $Port (PID $listenerPid)..." -ForegroundColor Yellow
+      Write-Host "  Stopping process on port $Port (PID $listenerPid)..." -ForegroundColor Yellow
       Stop-Process -Id $listenerPid -Force -ErrorAction SilentlyContinue
+      Start-Sleep -Milliseconds 500
     }
   }
 }
 
-function Test-WebCss {
-  $url = "http://localhost:3000/chatbot"
-  for ($attempt = 1; $attempt -le 12; $attempt++) {
-    try {
-      $html = (Invoke-WebRequest -UseBasicParsing -Uri $url -TimeoutSec 20).Content
-      $match = [regex]::Match($html, 'href="([^"]+\.css[^"]*)"')
-      if (!$match.Success) {
-        Start-Sleep -Seconds 2
-        continue
-      }
-
-      $cssPath = $match.Groups[1].Value
-      $css = Invoke-WebRequest -UseBasicParsing -Uri "http://localhost:3000$cssPath" -TimeoutSec 20
-      if ($css.StatusCode -eq 200 -and $css.Content -match "\.bg-primary") {
-        Write-Host "Web CSS verified." -ForegroundColor Green
-        return
-      }
-
-      Start-Sleep -Seconds 2
-    } catch {
-      Start-Sleep -Seconds 2
-    }
+function Setup-MLEnvironment {
+  Write-Host "[1/4] Setting up ML environment..." -ForegroundColor Cyan
+  $pythonExe = Join-Path $mlDir "venv\Scripts\python.exe"
+  if (!(Test-Path -LiteralPath $pythonExe)) {
+    Write-Host "      Creating venv..." -ForegroundColor Yellow
+    Push-Location $mlDir
+    python -m venv venv 2>&1 | Out-Null
+    Write-Host "      Installing dependencies..." -ForegroundColor Yellow
+    & $pythonExe -m pip install -q -r requirements.txt 2>&1 | Out-Null
+    Pop-Location
+    Write-Host "      [OK] ML ready" -ForegroundColor Green
+  } else {
+    Write-Host "      [OK] ML venv exists" -ForegroundColor Green
   }
-
-  Write-Host "Web CSS check failed. Restart the web service after clearing web\.next." -ForegroundColor Red
 }
 
-Stop-PortListener -Port 8000
-Stop-PortListener -Port 5000
-Stop-PortListener -Port 3000
+function Clean-Ports {
+  Write-Host "[2/4] Checking ports 8000, 5000, 3000..." -ForegroundColor Cyan
+  foreach ($port in @(8000, 5000, 3000)) {
+    $listeners = netstat -ano | Select-String "LISTENING" | Select-String "[:.]$port\s+"
+    if ($listeners) {
+      Write-Host "      Clearing port $port..." -ForegroundColor Yellow
+      Stop-PortListener -Port $port
+    }
+  }
+  Write-Host "      [OK] Ports cleared" -ForegroundColor Green
+}
 
-Write-Host "Starting ML Service on port 8000..." -ForegroundColor Green
-$mlDir = Join-Path $root "ml"
-$pythonExe = Join-Path $mlDir "venv\Scripts\python.exe"
-if (!(Test-Path -LiteralPath $pythonExe)) {
-  Push-Location $mlDir
-  python -m venv venv
-  & $pythonExe -m pip install -r requirements.txt
+function Clean-NextCache {
+  Write-Host "[3/4] Cleaning build cache..." -ForegroundColor Cyan
+  $nextCache = Join-Path $root "web\.next"
+  if (Test-Path -LiteralPath $nextCache) {
+    Remove-Item -LiteralPath $nextCache -Recurse -Force -ErrorAction SilentlyContinue
+    Write-Host "      [OK] Cache cleaned" -ForegroundColor Green
+  } else {
+    Write-Host "      [OK] No cache" -ForegroundColor Green
+  }
+}
+
+function Start-Services {
+  Write-Host "[4/4] Starting all services..." -ForegroundColor Cyan
+  Write-Host "      Running: npm run dev (concurrent)" -ForegroundColor Yellow
+  Write-Host ""
+  
+  Push-Location $root
+  npm.cmd run dev 2>&1 | ForEach-Object {
+    if ($_ -match "Ready in|listening on|Application startup|Started server|Uvicorn running") {
+      Write-Host $_ -ForegroundColor Green
+    } elseif ($_ -match "error|Error|ERROR|failed|Failed") {
+      Write-Host $_ -ForegroundColor Red
+    } else {
+      Write-Host $_
+    }
+  }
   Pop-Location
 }
-Start-Process powershell -WindowStyle Hidden -ArgumentList "-NoProfile", "-NoExit", "-Command", "Set-Location -LiteralPath `"$mlDir`"; .\venv\Scripts\python.exe app.py *> `"..\.logs\fastapi.dev.log`""
 
-Write-Host "Cleaning Next.js cache..." -ForegroundColor Green
-$nextCache = Join-Path $root "web\.next"
-if (Test-Path -LiteralPath $nextCache) {
-  Remove-Item -LiteralPath $nextCache -Recurse -Force
-}
+$ErrorActionPreference = "Continue"
+Setup-MLEnvironment
+Write-Host ""
+Clean-Ports
+Write-Host ""
+Clean-NextCache
+Write-Host ""
+Start-Services
 
-Write-Host "Starting Express Backend on port 5000..." -ForegroundColor Green
-Start-Process powershell -WindowStyle Hidden -ArgumentList "-NoProfile", "-NoExit", "-Command", "Set-Location -LiteralPath `"$root`"; npm.cmd run dev --workspace backend *> `".logs\backend.dev.log`""
-
-Write-Host "Starting Next.js Frontend on port 3000..." -ForegroundColor Green
-Start-Process powershell -WindowStyle Hidden -ArgumentList "-NoProfile", "-NoExit", "-Command", "Set-Location -LiteralPath `"$root`"; npm.cmd run dev --workspace web *> `".logs\web.dev.log`""
-
-Test-WebCss
-
-Write-Host "Services are starting in hidden PowerShell windows." -ForegroundColor Yellow
-Write-Host "Web Frontend: http://localhost:3000"
-Write-Host "Backend API: http://localhost:5000/api/health"
-Write-Host "ML Service: http://localhost:8000/health"
+Write-Host ""
+Write-Host "========================================" -ForegroundColor Cyan
+Write-Host "  Services Running" -ForegroundColor Cyan
+Write-Host "========================================" -ForegroundColor Cyan
+Write-Host "Frontend:   http://localhost:3000" -ForegroundColor Green
+Write-Host "Backend:    http://localhost:5000/api/health" -ForegroundColor Green
+Write-Host "ML Service: http://localhost:8000/health" -ForegroundColor Green
+Write-Host ""
+Write-Host "Press CTRL+C to stop all services" -ForegroundColor Yellow
+Write-Host ""

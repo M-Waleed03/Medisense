@@ -1,12 +1,13 @@
 from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from typing import Any, Dict, List, Literal, Optional
+from typing import Any, Dict, List, Literal, Optional, Tuple
 import io
 import json
 import logging
 import os
 import pickle
+import re
 import shutil
 import urllib.request
 import urllib.parse
@@ -165,18 +166,136 @@ PRECAUTIONS = {
     "Needs clinical review": ["Symptoms do not strongly match one configured condition.", "Track fever, hydration, and warning signs.", "Consult a licensed clinician for formal diagnosis."],
 }
 
+SYMPTOM_ALIASES = {
+    "body ache": "body ache",
+    "body pain": "body pain",
+    "muscle ache": "muscle pain",
+    "muscle aches": "muscle aches",
+    "joint aches": "joint pain",
+    "loss of appetite": "loss of appetite",
+    "appetite loss": "loss of appetite",
+    "stomach cramps": "stomach pain",
+    "stomach ache": "stomach pain",
+    "abdominal discomfort": "abdominal discomfort",
+    "eye pain": "eye pain",
+    "pain behind eyes": "eye pain",
+    "bleeding gums": "bleeding gums",
+    "nose bleeding": "nose bleeding",
+    "low platelet": "low platelets",
+    "low platelets": "low platelets",
+    "low platelet count": "low platelets",
+    "low platelets if known": "low platelets",
+    "low wbc": "low wbc",
+    "low white blood cells": "low wbc",
+    "recent mosquito bite": "mosquito exposure",
+    "mosquito bite": "mosquito exposure",
+    "mosquito exposure": "mosquito exposure",
+    "travel to malaria area": "travel history",
+    "recent travel": "travel history",
+    "contaminated food water exposure": "contaminated food water exposure",
+    "contaminated food or water exposure": "contaminated food water exposure",
+    "contact with sick person": "exposure",
+    "repeated fever cycles": "periodic fever",
+    "intermittent fever": "periodic fever",
+    "night fever": "fever",
+    "evening fever": "fever",
+    "continuous fever": "fever",
+    "very high fever": "high fever",
+    "moderate fever": "fever",
+    "low fever": "low grade fever",
+}
+
+
+def symptom_debug(label: str, payload: Any):
+    try:
+        message = f"[symptom-debug] {label}: {json.dumps(payload, default=str)}"
+    except Exception:
+        message = f"[symptom-debug] {label}: {payload}"
+    logger.info(message)
+    print(message, flush=True)
+
+
+def clean_symptom_text(value: Any) -> str:
+    text = str(value).strip().lower()
+    text = text.replace("&", " and ").replace("/", " or ")
+    text = re.sub(r"([a-z])([A-Z])", r"\1 \2", text)
+    text = re.sub(r"[^a-z0-9]+", " ", text)
+    return re.sub(r"\s+", " ", text).strip()
+
+
+def expand_symptom_phrase(value: Any) -> List[str]:
+    cleaned = clean_symptom_text(value)
+    if not cleaned:
+        return []
+
+    if cleaned.startswith("feverlevel "):
+        level = cleaned.replace("feverlevel ", "", 1).strip()
+        cleaned = f"{level} fever"
+    elif cleaned.startswith("fever level "):
+        level = cleaned.replace("fever level ", "", 1).strip()
+        cleaned = f"{level} fever"
+    elif cleaned.startswith("feverpattern "):
+        pattern = cleaned.replace("feverpattern ", "", 1).strip()
+        cleaned = f"{pattern} fever"
+    elif cleaned.startswith("fever pattern "):
+        pattern = cleaned.replace("fever pattern ", "", 1).strip()
+        cleaned = f"{pattern} fever"
+    elif cleaned.startswith("feverduration "):
+        cleaned = "fever"
+    elif cleaned.startswith("fever duration "):
+        cleaned = "fever"
+    elif cleaned.startswith("temperature "):
+        cleaned = "fever"
+
+    mapped = SYMPTOM_ALIASES.get(cleaned, cleaned)
+    expanded = [mapped]
+    if "fever" in mapped and mapped != "fever":
+        expanded.append("fever")
+    if mapped in {"rash", "bleeding gums", "nose bleeding", "eye pain", "mosquito exposure"}:
+        expanded.append("fever")
+    return expanded
+
+
+def text_pipeline_feature_vector(model: Any, text: str) -> Optional[Dict[str, Any]]:
+    named_steps = getattr(model, "named_steps", {})
+    vectorizer = named_steps.get("tfidf") if isinstance(named_steps, dict) else None
+    if vectorizer is None or not hasattr(vectorizer, "transform"):
+        return None
+
+    vector = vectorizer.transform([text])
+    names = vectorizer.get_feature_names_out() if hasattr(vectorizer, "get_feature_names_out") else []
+    row = vector[0]
+    nonzero = []
+    for index in row.nonzero()[1]:
+        feature = str(names[index]) if len(names) > index else str(index)
+        nonzero.append({"feature": feature, "value": round(float(row[0, index]), 6)})
+    return {"type": "tfidf", "shape": vector.shape, "nonzero": nonzero}
+
+
+def column_feature_vector(symptoms: List[str], columns: List[str]) -> Tuple[List[int], Dict[str, int]]:
+    text = " ".join(symptoms)
+    row = [1 if clean_symptom_text(column) in symptoms or clean_symptom_text(column) in text else 0 for column in columns]
+    nonzero = {str(column): row[index] for index, column in enumerate(columns) if row[index]}
+    return row, nonzero
+
 
 def normalize_symptoms(symptoms: List[str], clinical: Optional[Dict[str, Any]] = None) -> List[str]:
-    items = [str(symptom).strip().lower() for symptom in symptoms if str(symptom).strip()]
+    items: List[str] = []
+    for symptom in symptoms:
+        items.extend(expand_symptom_phrase(symptom))
+
     clinical = clinical or {}
-    if clinical.get("feverLevel") and clinical.get("feverLevel") != "none":
+    fever_level = clinical.get("feverLevel")
+    fever_pattern = clinical.get("feverPattern")
+    if fever_level and fever_level != "none":
+        items.extend(expand_symptom_phrase(f"{fever_level} fever"))
+    if fever_pattern:
+        items.extend(expand_symptom_phrase(f"{fever_pattern} fever"))
+    if clinical.get("temperature") or clinical.get("feverDuration"):
         items.append("fever")
-    if clinical.get("mosquitoExposure"):
-        items.append("mosquito exposure")
-    if clinical.get("travelHistory"):
-        items.append("travel history")
-    if clinical.get("foodWaterExposure"):
-        items.append("contaminated food or water exposure")
+    for key, value in clinical.items():
+        if value is True:
+            items.extend(expand_symptom_phrase(key))
     return sorted(set(items))
 
 
@@ -194,11 +313,15 @@ def prediction_from_probabilities(classes, probabilities):
 def predict_with_models(symptoms: List[str]):
     text = " ".join(symptoms)
     if curated_symptom_model is not None:
+        feature_vector = text_pipeline_feature_vector(curated_symptom_model, text)
+        symptom_debug("raw feature vector before prediction", feature_vector or {"type": "pipeline_input_text", "text": text})
         probabilities = curated_symptom_model.predict_proba([text])[0]
+        symptom_debug("raw model probabilities after prediction", dict(zip(map(str, curated_symptom_model.classes_), map(float, probabilities))))
         return prediction_from_probabilities(curated_symptom_model.classes_, probabilities), "symptom_model.joblib"
 
     if disease_model is not None and symptom_columns:
-        row = [1 if column in symptoms or column.lower() in text else 0 for column in symptom_columns]
+        row, nonzero = column_feature_vector(symptoms, symptom_columns)
+        symptom_debug("raw feature vector before prediction", {"type": "column_vector", "length": len(row), "row": row, "nonzero": nonzero})
         probabilities = disease_model.predict_proba([row])[0]
         classes = disease_model.classes_
         if disease_label_encoder is not None and hasattr(disease_label_encoder, "inverse_transform"):
@@ -206,9 +329,10 @@ def predict_with_models(symptoms: List[str]):
                 classes = disease_label_encoder.inverse_transform(classes)
             except Exception:
                 pass
+        symptom_debug("raw model probabilities after prediction", dict(zip(map(str, classes), map(float, probabilities))))
         return prediction_from_probabilities(classes, probabilities), "disease_model.pkl"
 
-    return (fallback_symptom_prediction(symptoms), 0.45, []), "medical fallback rules"
+    return (fallback_symptom_prediction(symptoms), 0, []), "medical fallback rules"
 
 
 def fallback_symptom_prediction(symptoms: List[str]):
@@ -227,10 +351,6 @@ def fallback_symptom_prediction(symptoms: List[str]):
 
 
 def symptom_response(prediction: str, confidence: float, symptoms: List[str], possible: Optional[List[Dict[str, Any]]] = None, model_name: str = "medical fallback rules"):
-    if confidence < 0.35:
-        prediction = fallback_symptom_prediction(symptoms)
-        confidence = max(confidence, 0.42)
-        model_name = f"{model_name} with fallback rules"
     risk = "high" if prediction == "Dengue" and (confidence >= 0.7 or any("bleeding" in item for item in symptoms)) else "moderate" if prediction == "Dengue" or confidence >= 0.45 else "low"
     return {
         "predictedDisease": prediction,
@@ -318,10 +438,15 @@ def analyze_values(values: Dict[str, Any], symptoms: Optional[List[str]] = None)
     platelets = numeric.get("platelets")
     wbc = numeric.get("wbc")
     hemoglobin = numeric.get("hemoglobin")
+    dengue_markers = []
+    if str(values.get("dengue_igg", "")).strip().lower() in {"positive", "reactive", "detected", "present"}:
+        dengue_markers.append("ANTI DENGUE IgG Positive")
+    if str(values.get("dengue_igm", "")).strip().lower() in {"positive", "reactive", "detected", "present"}:
+        dengue_markers.append("ANTI DENGUE IgM Positive")
     has_fever = any("fever" in item.lower() for item in symptoms)
 
     if platelets is not None and platelets < 150000:
-        statements.append("Platelets are lower than normal.")
+        statements.append("Low Platelets detected.")
         risk = "moderate"
     if platelets is not None and platelets < 100000:
         statements.append("Dengue risk appears high based on platelet count and symptoms." if has_fever else "Dengue risk may be elevated when low platelets occur with fever.")
@@ -330,11 +455,14 @@ def analyze_values(values: Dict[str, Any], symptoms: Optional[List[str]] = None)
         statements.append("WBC count is high, which may indicate infection.")
         risk = "moderate" if risk == "low" else risk
     if wbc is not None and wbc < 4000:
-        statements.append("WBC count is low, which can occur in viral infections including dengue.")
+        statements.append("Low WBC detected, which can occur in viral infections including dengue.")
         risk = "moderate" if risk == "low" else risk
     if hemoglobin is not None and hemoglobin < 12:
         statements.append("Hemoglobin is low, which may suggest anemia.")
         risk = "moderate" if risk == "low" else risk
+    if dengue_markers:
+        statements.append(f"Positive Dengue markers detected ({', '.join(dengue_markers)}).")
+        risk = "high" if risk in {"moderate", "high"} else "moderate"
     if not statements:
         statements.append("Extracted values are not showing obvious danger thresholds.")
     statements.append("Please consult a doctor immediately if fever is severe or symptoms worsen.")
@@ -575,7 +703,9 @@ async def health():
 
 @app.post("/predict-symptoms")
 async def predict_symptoms(payload: SymptomPayload):
+    symptom_debug("incoming API symptoms", {"symptoms": payload.symptoms, "clinicalInputs": payload.clinicalInputs})
     symptoms = normalize_symptoms(payload.symptoms, payload.clinicalInputs)
+    symptom_debug("normalized symptoms", symptoms)
     if not symptoms:
         raise HTTPException(status_code=422, detail="At least one symptom is required.")
     (prediction, confidence, possible), model_name = predict_with_models(symptoms)
@@ -594,14 +724,13 @@ async def predict_text_symptoms(payload: TextSymptomPayload):
         raise HTTPException(status_code=422, detail="Symptom text is required.")
     if symptom_text_model is not None and tfidf_vectorizer is not None:
         vector = tfidf_vectorizer.transform([text.lower()])
+        symptom_debug("raw text symptom feature vector before prediction", {"type": "tfidf", "shape": vector.shape, "nonzero_count": int(vector.nnz)})
         probabilities = symptom_text_model.predict_proba(vector)[0]
+        symptom_debug("raw text symptom probabilities after prediction", dict(zip(map(str, symptom_text_model.classes_), map(float, probabilities))))
         classes = symptom_text_model.classes_
         if text_label_encoder is not None:
             classes = text_label_encoder.inverse_transform(classes)
         prediction, confidence, possible = prediction_from_probabilities(classes, probabilities)
-        if confidence < 0.35:
-            prediction = fallback_symptom_prediction([text])
-            confidence = max(confidence, 0.42)
         return {
             "predictedDisease": prediction,
             "confidence": round(float(confidence), 3),
@@ -613,10 +742,10 @@ async def predict_text_symptoms(payload: TextSymptomPayload):
     prediction = fallback_symptom_prediction([text])
     return {
         "predictedDisease": prediction,
-        "confidence": 0.42,
+        "confidence": 0,
         "explanation": "The trained text model was unavailable, so MEDISENSE used conservative medical fallback rules.",
         "suggestedNextStep": "Consult a clinician for formal diagnosis and testing guidance.",
-        "possibleDiseases": [{"disease": prediction, "confidence": 0.42}],
+        "possibleDiseases": [{"disease": prediction, "confidence": 0}],
         "disclaimer": DISCLAIMER,
     }
 

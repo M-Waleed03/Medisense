@@ -28,6 +28,9 @@ export type ReportRecord = {
   mchc?: number | null;
   neutrophils?: number | null;
   lymphocytes?: number | null;
+  monocytes?: number | null;
+  dengue_igg?: string | null;
+  dengue_igm?: string | null;
   extracted_values?: Record<string, unknown>;
   diagnosis: string;
   riskLevel?: string;

@@ -18,7 +18,7 @@ type ReportResponse = {
   };
 };
 
-const markers = ["platelets", "wbc", "rbc", "hemoglobin", "hematocrit", "mcv", "mch", "mchc", "neutrophils", "lymphocytes"];
+const markers = ["hemoglobin", "wbc", "rbc", "platelets", "hematocrit", "mcv", "mch", "mchc", "neutrophils", "lymphocytes", "monocytes", "dengue_igg", "dengue_igm"];
 
 export function ReportUpload() {
   const [file, setFile] = useState<File | null>(null);
@@ -168,7 +168,22 @@ function Value({ label, value }: { label: string; value: string | number }) {
 }
 
 function markerLabel(marker: string) {
-  return marker === "wbc" ? "WBC" : marker === "rbc" ? "RBC" : marker.toUpperCase();
+  const labels: Record<string, string> = {
+    hemoglobin: "Hemoglobin",
+    wbc: "WBC",
+    rbc: "RBC",
+    platelets: "Platelets",
+    hematocrit: "PCV/Hematocrit",
+    mcv: "MCV",
+    mch: "MCH",
+    mchc: "MCHC",
+    neutrophils: "Neutrophils",
+    lymphocytes: "Lymphocytes",
+    monocytes: "Monocytes",
+    dengue_igg: "ANTI DENGUE IgG",
+    dengue_igm: "ANTI DENGUE IgM"
+  };
+  return labels[marker] ?? marker.toUpperCase();
 }
 
 function numericValue(value: unknown) {

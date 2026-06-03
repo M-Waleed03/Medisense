@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Activity, Bot, ClipboardList, FileScan, History, LayoutDashboard, LogOut, Settings, Shield, User } from "lucide-react";
+import { Activity, Bot, ClipboardList, FileScan, History, LayoutDashboard, LogOut, Settings, Shield, Stethoscope, User } from "lucide-react";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { ensureClientProfile } from "@/lib/profile";
@@ -15,6 +15,7 @@ import { ThemeToggle } from "@/components/theme/theme-toggle";
 const nav = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/symptom-checker", label: "Symptoms", icon: ClipboardList },
+  { href: "/doctors", label: "Doctors", icon: Stethoscope },
   { href: "/report-analysis", label: "Reports", icon: FileScan },
   { href: "/chatbot", label: "Chatbot", icon: Bot },
   { href: "/history", label: "History", icon: History },

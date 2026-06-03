@@ -3,25 +3,34 @@ import FormData from "form-data";
 import { env } from "../config/env.js";
 
 export type PredictionResult = {
+  predictedDisease?: string;
   prediction: string;
   confidence: number;
+  possibleDiseases?: Array<{ disease: string; confidence: number }>;
   recommendations: string[];
   recommendedTests?: string[];
   precautions?: string[];
   riskLevel: "low" | "moderate" | "high";
-  explanation?: Record<string, unknown>;
+  explanation?: Record<string, unknown> | string;
 };
 
-export async function predictSymptoms(symptoms: string[]): Promise<PredictionResult> {
+export async function predictSymptoms(symptoms: string[], clinicalInputs: Record<string, unknown> = {}): Promise<PredictionResult> {
   try {
-    const { data } = await axios.post(`${env.ML_SERVICE_URL}/predict`, { symptoms }, { timeout: 15000 });
+    const { data } = await axios.post(`${env.ML_SERVICE_URL}/predict`, { symptoms, clinicalInputs }, { timeout: 15000 });
+    const recommendations = Array.isArray(data.recommendations)
+      ? data.recommendations
+      : typeof data.recommendations === "string" && data.recommendations.trim()
+        ? [data.recommendations]
+        : [];
     return {
-      prediction: data.prediction,
+      predictedDisease: data.predictedDisease ?? data.prediction,
+      prediction: data.prediction ?? data.predictedDisease,
       confidence: Number(data.confidence ?? 0),
-      recommendations: Array.isArray(data.recommendations) ? data.recommendations : [String(data.recommendations)],
-      recommendedTests: Array.isArray(data.recommended_tests) ? data.recommended_tests : [],
+      possibleDiseases: Array.isArray(data.possibleDiseases) ? data.possibleDiseases : [],
+      recommendations,
+      recommendedTests: Array.isArray(data.recommendedTests) ? data.recommendedTests : Array.isArray(data.recommended_tests) ? data.recommended_tests : [],
       precautions: Array.isArray(data.precautions) ? data.precautions : [],
-      riskLevel: data.risk_level ?? "moderate",
+      riskLevel: data.riskLevel ?? data.risk_level ?? "moderate",
       explanation: data.explanation ?? {}
     };
   } catch (error) {
@@ -61,11 +70,12 @@ function ruleBasedPrediction(symptoms: string[], reason: string): PredictionResu
   if (has(["platelet", "rash", "bleeding", "mosquito", "eye pain"])) {
     return {
       prediction: "Dengue possibility",
-      confidence: 0.62,
+      confidence: 0,
       riskLevel: has(["bleeding", "severe abdominal", "persistent vomiting"]) ? "high" : "moderate",
       recommendations: ["Hydrate carefully, avoid aspirin/ibuprofen unless a clinician approves, and arrange dengue/CBC testing.", "Seek urgent care for bleeding, severe abdominal pain, persistent vomiting, drowsiness, or low urine output."],
       recommendedTests: ["CBC with platelet trend", "Dengue NS1 or IgM/IgG depending on illness day"],
       precautions: ["Use mosquito protection", "Monitor warning signs closely"],
+      possibleDiseases: [],
       explanation: { fallback: true, reason, matched_rule: "dengue warning pattern" }
     };
   }
@@ -73,11 +83,12 @@ function ruleBasedPrediction(symptoms: string[], reason: string): PredictionResu
   if (has(["chills", "sweating", "travel", "periodic"])) {
     return {
       prediction: "Malaria possibility",
-      confidence: 0.58,
+      confidence: 0,
       riskLevel: "moderate",
       recommendations: ["Arrange malaria rapid test or blood smear and consult a clinician.", "Seek urgent care for confusion, jaundice, severe weakness, or breathing difficulty."],
       recommendedTests: ["Rapid malaria antigen test", "Peripheral blood smear", "CBC"],
       precautions: ["Use mosquito nets and repellent", "Do not delay confirmatory testing"],
+      possibleDiseases: [],
       explanation: { fallback: true, reason, matched_rule: "malaria fever pattern" }
     };
   }
@@ -85,22 +96,24 @@ function ruleBasedPrediction(symptoms: string[], reason: string): PredictionResu
   if (has(["abdominal", "diarrhea", "constipation", "appetite", "stomach"])) {
     return {
       prediction: "Typhoid or gastrointestinal fever possibility",
-      confidence: 0.55,
+      confidence: 0,
       riskLevel: "moderate",
       recommendations: ["Consult a clinician for appropriate testing and treatment planning.", "Maintain hydration and seek care for persistent fever, dehydration, severe abdominal pain, or blood in stool."],
       recommendedTests: ["Blood culture where available", "CBC", "Clinician-directed stool or typhoid testing"],
       precautions: ["Use safe water and hand hygiene", "Avoid self-medication with antibiotics"],
+      possibleDiseases: [],
       explanation: { fallback: true, reason, matched_rule: "enteric fever pattern" }
     };
   }
 
   return {
     prediction: has(["cough", "sore throat", "runny"]) ? "Flu or viral respiratory illness possibility" : "Viral fever possibility",
-    confidence: 0.5,
+    confidence: 0,
     riskLevel: "low",
     recommendations: ["Rest, hydrate, monitor temperature, and consult a licensed clinician if symptoms worsen or fever lasts more than three days."],
     recommendedTests: ["CBC if fever persists", "COVID/flu testing if respiratory symptoms are present"],
     precautions: ["Seek urgent care for breathing difficulty, chest pain, confusion, severe dehydration, or rapidly worsening symptoms."],
+    possibleDiseases: [],
     explanation: { fallback: true, reason, matched_rule: "general fever safety rule" }
   };
 }

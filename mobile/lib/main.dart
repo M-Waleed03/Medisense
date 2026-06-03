@@ -11,6 +11,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 const firebaseApiKey = String.fromEnvironment('FIREBASE_API_KEY',
     defaultValue: 'AIzaSyADvUziMGNd7hKAFG-WV_f0PuZP6RgfAOM');
@@ -595,6 +597,7 @@ class _MobileShellState extends State<MobileShell> {
   final pages = const [
     DashboardScreen(),
     SymptomScreen(),
+    DoctorsScreen(),
     ReportsScreen(),
     ChatScreen(),
     HistoryScreen(),
@@ -604,6 +607,7 @@ class _MobileShellState extends State<MobileShell> {
   final labels = const [
     'Dashboard',
     'Symptoms',
+    'Doctors',
     'Reports',
     'Chatbot',
     'History',
@@ -695,6 +699,10 @@ class _MobileShellState extends State<MobileShell> {
                       icon: Icon(Icons.monitor_heart_outlined),
                       selectedIcon: Icon(Icons.monitor_heart),
                       label: 'Symptoms'),
+                  NavigationDestination(
+                    icon: Icon(Icons.medical_services_outlined),
+                    selectedIcon: Icon(Icons.medical_services),
+                    label: 'Doctors'),
                   NavigationDestination(
                       icon: Icon(Icons.document_scanner_outlined),
                       selectedIcon: Icon(Icons.document_scanner),
@@ -962,6 +970,7 @@ class _SymptomScreenState extends State<SymptomScreen> {
       'bleeding gums',
       'nose bleeding',
       'low platelets if known',
+      'low WBC',
       'mosquito exposure'
     ],
     'Malaria indicators': [
@@ -1011,8 +1020,7 @@ class _SymptomScreenState extends State<SymptomScreen> {
       result = '';
     });
     try {
-      final endpoint =
-          naturalText ? '/predict-text-symptoms' : '/predict-symptoms';
+        final endpoint = naturalText ? '/text-symptoms' : '/symptoms';
       final body = naturalText
           ? {'text': text.text.trim()}
           : {
@@ -1046,6 +1054,22 @@ class _SymptomScreenState extends State<SymptomScreen> {
       });
       setState(() => result =
           '${data['predictedDisease'] ?? data['prediction'] ?? 'Needs review'} - ${confidenceText(data['confidence'])}\n${data['explanation'] ?? ''}\n${data['doctorAdvice'] ?? data['suggestedNextStep'] ?? ''}');
+      // persist latest prediction for Doctors page
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        final disease = data['predictedDisease'] ?? data['prediction'] ?? 'Unknown';
+        final confidence = (data['confidence'] is num)
+            ? (data['confidence'] > 1 ? (data['confidence'] as num).round() : ((data['confidence'] as num) * 100).round())
+            : 0;
+        final payload = {
+          'disease': disease,
+          'confidence': confidence,
+          'riskLevel': data['riskLevel'] ?? 'Moderate',
+          'symptoms': selected.toList(),
+          'timestamp': DateTime.now().toIso8601String()
+        };
+        await prefs.setString('latestPrediction', jsonEncode(payload));
+      } catch (_) {}
     } catch (err) {
       setState(() => result = friendlyBackendError(err, chatbot: false));
     } finally {
@@ -1226,6 +1250,138 @@ class _SymptomScreenState extends State<SymptomScreen> {
   }
 }
 
+class DoctorsScreen extends StatelessWidget {
+  const DoctorsScreen({super.key});
+
+  static final doctors = [
+    {
+      'id': 'doctor-1',
+      'name': 'Dr. Ananya Rao',
+      'specialty': 'Infectious Disease Specialist',
+      'location': 'Bengaluru, India',
+      'experience': '12 years',
+      'phone': '15551234567',
+      'rating': 4.9,
+      'description': 'Expert in fever diagnosis, dengue, malaria and complex infectious conditions.'
+    },
+    {
+      'id': 'doctor-2',
+      'name': 'Dr. Sameer Patel',
+      'specialty': 'General Physician',
+      'location': 'Mumbai, India',
+      'experience': '10 years',
+      'phone': '15552345678',
+      'rating': 4.8,
+      'description': 'Practical clinical guidance for acute symptoms, referrals, and first-line treatment plans.'
+    },
+    {
+      'id': 'doctor-3',
+      'name': 'Dr. Meera Sharma',
+      'specialty': 'Internal Medicine',
+      'location': 'Delhi, India',
+      'experience': '14 years',
+      'phone': '15553456789',
+      'rating': 4.7,
+      'description': 'Focused on diagnostic clarity, lab follow-up, and safe outpatient care pathways.'
+    },
+    {
+      'id': 'doctor-4',
+      'name': 'Dr. Rohan Iyer',
+      'specialty': 'Pediatric & Family Care',
+      'location': 'Chennai, India',
+      'experience': '9 years',
+      'phone': '15554567890',
+      'rating': 4.8,
+      'description': 'Child-friendly consultation for fever, infection, and family health guidance.'
+    }
+  ];
+
+  Future<Map<String, dynamic>?> _loadPrediction() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString('latestPrediction');
+      if (raw == null) return null;
+      return Map<String, dynamic>.from(jsonDecode(raw) as Map);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> _openWhatsApp(String phone, String message) async {
+    final encoded = Uri.encodeComponent(message);
+    final url = 'https://wa.me/$phone?text=$encoded';
+    final uri = Uri.parse(url);
+    if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+      throw 'Could not open $url';
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<Map<String, dynamic>?>(
+      future: _loadPrediction(),
+      builder: (context, snapshot) {
+        final prediction = snapshot.data;
+        final disease = (prediction?['disease'] ?? 'your condition').toString();
+        final confidence = prediction?['confidence']?.toString();
+        final summary = confidence != null ? '$disease ($confidence%)' : disease;
+        return ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            const SectionTitle(
+                title: 'Doctor consultation',
+                subtitle: 'Choose a clinician and continue via WhatsApp.'),
+            GlassCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('MEDISENSE prediction', style: TextStyle(fontSize: 12, color: MediColors.muted)),
+                  const SizedBox(height: 8),
+                  Text('Prediction: $summary', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
+                  const SizedBox(height: 8),
+                  const Text('This will prefill a WhatsApp message to the doctor with your MEDISENSE result.', style: TextStyle(color: MediColors.muted)),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            ...doctors.map((doctor) {
+              final name = doctor['name'].toString();
+              final description = doctor['description'].toString();
+              final phone = doctor['phone'].toString();
+
+              return GlassCard(
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Text(name, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
+                    const SizedBox(height: 6),
+                    Text('${doctor['specialty']} · ${doctor['location']} · ${doctor['experience']}', style: const TextStyle(color: MediColors.muted)),
+                    const SizedBox(height: 8),
+                    Text(description, style: const TextStyle(color: MediColors.muted)),
+                    const SizedBox(height: 8),
+                    Row(mainAxisAlignment: MainAxisAlignment.end, children: [
+                      FilledButton.icon(
+                        onPressed: () async {
+                          final message = 'Hello ${doctor['name']}, I used MEDISENSE and received a prediction for $disease${confidence != null ? ' with $confidence% confidence' : ''}. I’d like a consultation.';
+                          try {
+                            await _openWhatsApp(phone, message);
+                          } catch (err) {
+                            if (!context.mounted) return;
+                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Could not open WhatsApp: $err')));
+                          }
+                        },
+                        icon: const Icon(Icons.message),
+                        label: const Text('WhatsApp consult'),
+                      )
+                    ])
+                  ]),
+                );
+            })
+          ],
+        );
+      },
+    );
+  }
+}
+
 class ReportsScreen extends StatefulWidget {
   const ReportsScreen({super.key});
 
@@ -1292,8 +1448,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
             'createdAt': FieldValue.serverTimestamp(),
             'updatedAt': FieldValue.serverTimestamp(),
           })));
-      setState(() => result =
-          'Platelets: ${values['platelets'] ?? 'N/A'}\nWBC: ${values['wbc'] ?? 'N/A'}\nHemoglobin: ${values['hemoglobin'] ?? 'N/A'}\n${analysis['summary'] ?? analysis['analysis'] ?? ''}');
+      setState(() => result = formatReportSummary(values, analysis));
     } catch (err) {
       setState(() => result = friendlyBackendError(err, chatbot: false));
     } finally {
@@ -1889,13 +2044,13 @@ class PremiumBackground extends StatelessWidget {
             ),
           ),
         ),
-        Positioned(
+        const Positioned(
           top: -90,
           right: -80,
           child: _LightField(
               size: 260, colors: [MediColors.primary, MediColors.ghostBlue]),
         ),
-        Positioned(
+        const Positioned(
           bottom: -120,
           left: -90,
           child: _LightField(
@@ -2306,7 +2461,10 @@ List<FlSpot> chartSpots(
   final reversed = reports.reversed.toList();
   final spots = <FlSpot>[];
   for (var index = 0; index < reversed.length; index += 1) {
-    final value = toNullableNumber(reversed[index].data()[key]);
+    final data = reversed[index].data();
+    final extracted = data['extractedValues'];
+    final extractedValue = extracted is Map ? extracted[key] : null;
+    final value = toNullableNumber(data[key] ?? extractedValue);
     if (value != null) spots.add(FlSpot(index.toDouble(), value / divisor));
   }
   return spots.isEmpty ? [const FlSpot(0, 0)] : spots;
@@ -2350,6 +2508,7 @@ String markerStatus(String marker, double? value) {
     'mchc': (32, 36),
     'neutrophils': (40, 75),
     'lymphocytes': (20, 45),
+    'monocytes': (2, 10),
   };
   final range = ranges[marker];
   if (range == null) return 'unknown';
@@ -2406,6 +2565,38 @@ String labelFor(String key) {
   return labels[key] ?? key;
 }
 
+String reportValue(Map<String, dynamic> values, String key) {
+  final value = values[key];
+  if (value == null || value.toString().trim().isEmpty) return 'N/A';
+  return value.toString();
+}
+
+String formatReportSummary(
+    Map<String, dynamic> values, Map<String, dynamic> analysis) {
+  const rows = [
+    ('Hemoglobin', 'hemoglobin'),
+    ('WBC', 'wbc'),
+    ('RBC', 'rbc'),
+    ('Platelets', 'platelets'),
+    ('PCV/Hematocrit', 'hematocrit'),
+    ('MCV', 'mcv'),
+    ('MCH', 'mch'),
+    ('MCHC', 'mchc'),
+    ('Neutrophils', 'neutrophils'),
+    ('Lymphocytes', 'lymphocytes'),
+    ('Monocytes', 'monocytes'),
+    ('ANTI DENGUE IgG', 'dengue_igg'),
+    ('ANTI DENGUE IgM', 'dengue_igm'),
+  ];
+  final extracted = rows
+      .map((row) => '${row.$1}: ${reportValue(values, row.$2)}')
+      .join('\n');
+  final summary = analysis['summary'] ?? analysis['analysis'] ?? '';
+  return summary.toString().trim().isEmpty
+      ? extracted
+      : '$extracted\n$summary';
+}
+
 const reportMarkers = [
   'platelets',
   'wbc',
@@ -2416,5 +2607,6 @@ const reportMarkers = [
   'mch',
   'mchc',
   'neutrophils',
-  'lymphocytes'
+  'lymphocytes',
+  'monocytes'
 ];

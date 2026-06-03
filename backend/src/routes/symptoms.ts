@@ -7,17 +7,52 @@ import { predictSymptoms } from "../services/ml.js";
 export const symptomsRouter = Router();
 
 const symptomSchema = z.object({
-  symptoms: z.array(z.string().min(2).max(80)).min(1).max(32),
+  symptoms: z.array(z.string().min(2).max(80)).max(40),
   clinicalInputs: z.record(z.union([z.string(), z.number(), z.boolean(), z.null()])).optional()
+}).refine((payload) => payload.symptoms.length > 0 || hasClinicalInputs(payload.clinicalInputs), {
+  message: "At least one symptom or clinical input is required.",
+  path: ["symptoms"]
 });
+
+function hasClinicalInputs(clinicalInputs?: Record<string, string | number | boolean | null>) {
+  return Object.values(clinicalInputs ?? {}).some((value) => value !== "" && value !== null && value !== false && value !== undefined);
+}
+
+function clinicalInputSymptoms(clinicalInputs?: Record<string, string | number | boolean | null>) {
+  if (!clinicalInputs) return [];
+  const symptoms: string[] = [];
+  const feverLevel = clinicalInputs.feverLevel;
+  const feverPattern = clinicalInputs.feverPattern;
+  const temperature = clinicalInputs.temperature;
+  const feverDuration = clinicalInputs.feverDuration;
+
+  if (feverLevel && feverLevel !== "none") symptoms.push(`${feverLevel} fever`);
+  if (feverPattern) symptoms.push(`${feverPattern} fever`);
+  if (temperature) symptoms.push(`temperature ${temperature}`);
+  if (feverDuration) symptoms.push(`fever duration ${feverDuration}`);
+
+  for (const [key, value] of Object.entries(clinicalInputs)) {
+    if (value === true) symptoms.push(key.replace(/([A-Z])/g, " $1").toLowerCase());
+  }
+
+  return symptoms;
+}
 
 symptomsRouter.post("/", requireAuth, async (req, res, next) => {
   try {
     const payload = symptomSchema.parse(req.body);
-    const symptomPayload = payload.clinicalInputs
-      ? [...payload.symptoms, ...Object.entries(payload.clinicalInputs).filter(([, value]) => value !== "" && value !== null && value !== false).map(([key, value]) => `${key}: ${value}`)]
-      : payload.symptoms;
-    const prediction = await predictSymptoms(symptomPayload);
+    const symptomPayload = [...new Set([...payload.symptoms, ...clinicalInputSymptoms(payload.clinicalInputs)].map((item) => item.trim()).filter(Boolean))];
+    console.info("[symptoms-api] incoming symptoms", {
+      userId: req.user?.id,
+      symptoms: payload.symptoms,
+      clinicalInputs: payload.clinicalInputs ?? {}
+    });
+    console.info("[symptoms-api] forwarded symptoms", {
+      userId: req.user?.id,
+      symptoms: symptomPayload
+    });
+
+    const prediction = await predictSymptoms(symptomPayload, payload.clinicalInputs ?? {});
     const supabase = createUserSupabase(req.accessToken!);
 
     const { data, error } = await supabase

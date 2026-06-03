@@ -27,6 +27,28 @@ const tooltipStyle = {
   color: "#ededf3"
 };
 
+type NumericReportKey = "hemoglobin" | "wbc" | "rbc" | "platelets" | "hematocrit" | "mcv" | "mch" | "mchc" | "neutrophils" | "lymphocytes" | "monocytes";
+type ReportKey = NumericReportKey | "dengue_igg" | "dengue_igm";
+
+const cbcMarkers: Array<{ key: NumericReportKey; label: string }> = [
+  { key: "hemoglobin", label: "Hemoglobin" },
+  { key: "wbc", label: "WBC" },
+  { key: "rbc", label: "RBC" },
+  { key: "platelets", label: "Platelets" },
+  { key: "hematocrit", label: "PCV/Hematocrit" },
+  { key: "mcv", label: "MCV" },
+  { key: "mch", label: "MCH" },
+  { key: "mchc", label: "MCHC" },
+  { key: "neutrophils", label: "Neutrophils" },
+  { key: "lymphocytes", label: "Lymphocytes" },
+  { key: "monocytes", label: "Monocytes" }
+];
+
+const dengueMarkers: Array<{ key: ReportKey; label: string }> = [
+  { key: "dengue_igg", label: "ANTI DENGUE IgG" },
+  { key: "dengue_igm", label: "ANTI DENGUE IgM" }
+];
+
 export function DashboardClient() {
   const { data, isLoading, error } = useQuery({ queryKey: ["history"], queryFn: () => apiGet<History>("/history") });
   const { data: profileData } = useQuery({ queryKey: ["dashboard-profile"], queryFn: () => apiGet<{ profile: UserProfile }>("/profile"), retry: 1 });
@@ -47,9 +69,17 @@ export function DashboardClient() {
   const confidenceData = symptoms.slice(0, 8).reverse().map((item, index) => ({ name: `Check ${index + 1}`, confidence: Math.round((item.confidence_score ?? 0) * 100) }));
   const reportData = reports.slice(0, 10).reverse().map((item, index) => ({
     name: `R${index + 1}`,
-    platelets: item.platelets ?? undefined,
-    wbc: item.wbc ?? undefined,
-    hemoglobin: item.hemoglobin ?? undefined
+    hemoglobin: numericReportValue(item, "hemoglobin"),
+    wbc: numericReportValue(item, "wbc"),
+    rbc: numericReportValue(item, "rbc"),
+    platelets: numericReportValue(item, "platelets"),
+    hematocrit: numericReportValue(item, "hematocrit"),
+    mcv: numericReportValue(item, "mcv"),
+    mch: numericReportValue(item, "mch"),
+    mchc: numericReportValue(item, "mchc"),
+    neutrophils: numericReportValue(item, "neutrophils"),
+    lymphocytes: numericReportValue(item, "lymphocytes"),
+    monocytes: numericReportValue(item, "monocytes")
   }));
   const recommendationItems = recommendations.length > 0
     ? recommendations.slice(0, 5).map((item) => item.message ?? item.text ?? item.title ?? "Recommendation saved")
@@ -95,6 +125,25 @@ export function DashboardClient() {
         <MetricCard title="Risk level" value={latest?.risk_level ?? latestReport?.riskLevel ?? "Low"} icon={Shield} />
         <MetricCard title="Profile complete" value={`${profileCompletion}%`} icon={User} />
       </div>
+
+      {latestReport && (
+        <Reveal>
+          <HoloPanel>
+            <div className="mb-5 flex items-center gap-3">
+              <FileText className="h-4 w-4 text-starlight" />
+              <h3 className="text-sm font-medium text-starlight">Latest extracted report values</h3>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6">
+              {cbcMarkers.map((marker) => (
+                <ReportValueCard key={marker.key} label={marker.label} value={displayReportValue(latestReport, marker.key)} />
+              ))}
+              {dengueMarkers.map((marker) => (
+                <ReportValueCard key={marker.key} label={marker.label} value={displayReportValue(latestReport, marker.key)} />
+              ))}
+            </div>
+          </HoloPanel>
+        </Reveal>
+      )}
 
       <div className="grid gap-5 lg:grid-cols-3">
         <Reveal>
@@ -143,6 +192,8 @@ export function DashboardClient() {
       <div className="grid gap-5 lg:grid-cols-2">
         <TrendCard title="Platelet levels" data={reportData} dataKey="platelets" empty="Upload CBC reports to track platelet trends." />
         <TrendCard title="WBC activity" data={reportData} dataKey="wbc" empty="Upload CBC reports to track WBC trends." />
+        <TrendCard title="Hemoglobin trend" data={reportData} dataKey="hemoglobin" empty="Upload CBC reports to track hemoglobin trends." />
+        <TrendCard title="MCHC trend" data={reportData} dataKey="mchc" empty="Upload CBC reports to track MCHC trends." />
       </div>
 
       <div className="grid gap-5 lg:grid-cols-[0.62fr_1fr]">
@@ -208,6 +259,15 @@ function SmallStat({ label, value }: { label: string; value: string }) {
   );
 }
 
+function ReportValueCard({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="border border-lead/30 bg-graphite/44 p-4">
+      <p className="text-xs font-medium uppercase tracking-[0.14em] text-silver">{label}</p>
+      <p className="mt-2 truncate text-lg font-medium text-starlight">{value}</p>
+    </div>
+  );
+}
+
 function MetricCard({ title, value, icon: Icon }: { title: string; value: string; icon: typeof Heart }) {
   return (
     <motion.div whileHover={{ y: -2 }} className="border border-lead/35 bg-midnight-slate/72 p-5 transition-colors hover:bg-graphite/65">
@@ -220,7 +280,7 @@ function MetricCard({ title, value, icon: Icon }: { title: string; value: string
   );
 }
 
-function TrendCard({ title, data, dataKey, empty }: { title: string; data: Array<Record<string, string | number | undefined>>; dataKey: "platelets" | "wbc" | "hemoglobin"; empty: string }) {
+function TrendCard({ title, data, dataKey, empty }: { title: string; data: Array<Record<string, string | number | undefined>>; dataKey: NumericReportKey; empty: string }) {
   const usable = data.some((item) => item[dataKey] !== undefined);
 
   return (
@@ -276,4 +336,23 @@ function riskToValue(risk?: string) {
   if (normalized.includes("moderate") || normalized.includes("medium")) return 56;
   if (normalized.includes("low")) return 24;
   return 12;
+}
+
+function rawReportValue(report: ReportRecord | undefined, key: ReportKey) {
+  if (!report) return undefined;
+  const topLevel = (report as Record<string, unknown>)[key];
+  return topLevel ?? report.extracted_values?.[key];
+}
+
+function numericReportValue(report: ReportRecord, key: NumericReportKey) {
+  const value = rawReportValue(report, key);
+  if (value === null || value === undefined || value === "" || value === "N/A") return undefined;
+  const parsed = Number(String(value).replace(/[^\d.]/g, ""));
+  return Number.isFinite(parsed) ? parsed : undefined;
+}
+
+function displayReportValue(report: ReportRecord, key: ReportKey) {
+  const value = rawReportValue(report, key);
+  if (value === null || value === undefined || value === "") return "N/A";
+  return String(value);
 }
