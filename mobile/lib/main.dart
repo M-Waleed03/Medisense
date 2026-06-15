@@ -99,7 +99,7 @@ class MediSenseApp extends StatelessWidget {
         iconTheme: const IconThemeData(color: MediColors.text),
         filledButtonTheme: FilledButtonThemeData(
           style: FilledButton.styleFrom(
-            minimumSize: const Size.fromHeight(52),
+            minimumSize: const Size(120, 52),
             backgroundColor: MediColors.primary,
             foregroundColor: MediColors.white,
             shape:
@@ -329,65 +329,124 @@ class _OnboardingAuthShellState extends State<OnboardingAuthShell> {
       body: SafeArea(
         child: PremiumBackground(
           child: Padding(
-            padding: const EdgeInsets.all(24),
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 22),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const DoctorMark(size: 56),
-                const Spacer(),
-                GlassCard(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Icon(slide.$3, color: MediColors.primary, size: 38),
-                      const SizedBox(height: 18),
-                      Text(slide.$1,
-                          style: const TextStyle(
-                              fontSize: 30,
-                              fontWeight: FontWeight.w300,
-                              color: MediColors.text)),
-                      const SizedBox(height: 12),
-                      Text(slide.$2,
-                          style: const TextStyle(
-                              height: 1.45, color: MediColors.muted)),
-                    ],
-                  ),
-                ),
-                Row(
-                  children: List.generate(
-                      slides.length,
-                      (index) => AnimatedContainer(
-                            duration: const Duration(milliseconds: 220),
-                            margin: const EdgeInsets.only(right: 8),
-                            height: 8,
-                            width: page == index ? 28 : 8,
-                            decoration: BoxDecoration(
-                                color: page == index
-                                    ? MediColors.primary
-                                    : MediColors.lead,
-                                borderRadius: BorderRadius.circular(10)),
-                          )),
-                ),
-                const Spacer(),
                 Row(
                   children: [
+                    const DoctorMark(size: 56),
+                    const SizedBox(width: 14),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: const [
+                        Text('MEDISENSE',
+                            style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w500,
+                                letterSpacing: 0.6)),
+                        SizedBox(height: 4),
+                        Text('Your AI health workspace',
+                            style: TextStyle(
+                                color: MediColors.muted, fontSize: 13)),
+                      ],
+                    ),
+                    const Spacer(),
                     TextButton(
                         onPressed: () => setState(() => showAuth = true),
                         child: const Text('Skip')),
-                    const Spacer(),
-                    FilledButton.icon(
-                      onPressed: () {
-                        if (page == slides.length - 1) {
-                          setState(() => showAuth = true);
-                        } else {
-                          setState(() => page += 1);
-                        }
-                      },
-                      icon: const Icon(Icons.arrow_forward),
-                      label: Text(
-                          page == slides.length - 1 ? 'Get started' : 'Next'),
+                  ],
+                ),
+                const SizedBox(height: 22),
+                GlassCard(
+                  margin: EdgeInsets.zero,
+                  padding: const EdgeInsets.fromLTRB(26, 26, 26, 24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: MediColors.background.withValues(alpha: 0.42),
+                              borderRadius: BorderRadius.circular(22),
+                            ),
+                            child: Icon(slide.$3,
+                                color: MediColors.primary, size: 34),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 14, vertical: 8),
+                            decoration: BoxDecoration(
+                              color: MediColors.graphite.withValues(alpha: 0.42),
+                              borderRadius: BorderRadius.circular(32),
+                            ),
+                            child: Text('${page + 1}/${slides.length}',
+                                style: const TextStyle(
+                                    color: MediColors.muted, fontSize: 12)),
+                          )
+                        ],
+                      ),
+                      const SizedBox(height: 28),
+                      Text(slide.$1,
+                          style: const TextStyle(
+                              fontSize: 34,
+                              fontWeight: FontWeight.w300,
+                              height: 1.1,
+                              color: MediColors.text)),
+                      const SizedBox(height: 18),
+                      Text(slide.$2,
+                          style: const TextStyle(
+                              height: 1.6,
+                              fontSize: 16,
+                              color: MediColors.muted)),
+                      const SizedBox(height: 30),
+                      Row(
+                        children: List.generate(
+                          slides.length,
+                          (index) => AnimatedContainer(
+                            duration: const Duration(milliseconds: 220),
+                            margin: const EdgeInsets.only(right: 10),
+                            height: 8,
+                            width: page == index ? 30 : 8,
+                            decoration: BoxDecoration(
+                              color: page == index
+                                  ? MediColors.primary
+                                  : MediColors.lead,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 28),
+                Row(
+                  children: [
+                    Expanded(
+                      child: FilledButton.icon(
+                        onPressed: () {
+                          if (page == slides.length - 1) {
+                            setState(() => showAuth = true);
+                          } else {
+                            setState(() => page += 1);
+                          }
+                        },
+                        icon: const Icon(Icons.arrow_forward),
+                        label: Text(
+                            page == slides.length - 1 ? 'Get started' : 'Next'),
+                      ),
                     ),
                   ],
+                ),
+                const SizedBox(height: 18),
+                Center(
+                  child: TextButton(
+                    onPressed: () => setState(() => showAuth = true),
+                    child: const Text('Already have an account? Sign in'),
+                  ),
                 ),
               ],
             ),
@@ -2148,13 +2207,14 @@ class GlassCard extends StatelessWidget {
       width: double.infinity,
       margin: margin,
       child: ClipRRect(
-        borderRadius: BorderRadius.zero,
+        borderRadius: BorderRadius.circular(28),
         child: BackdropFilter(
           filter: ImageFilter.blur(sigmaX: 22, sigmaY: 22),
           child: Container(
             padding: padding,
             decoration: BoxDecoration(
               color: MediColors.surface.withValues(alpha: 0.82),
+              borderRadius: BorderRadius.circular(28),
               border: Border.all(color: MediColors.lead.withValues(alpha: 0.38)),
             ),
             child: child,

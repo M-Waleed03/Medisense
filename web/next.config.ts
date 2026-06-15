@@ -12,6 +12,10 @@ if (existsSync(rootEnvPath)) {
   }
 }
 
-const nextConfig: NextConfig = {};
+const nextConfig: NextConfig = {
+  images: {
+    domains: ["lh3.googleusercontent.com"],
+  },
+};
 
 export default nextConfig;
