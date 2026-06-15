@@ -78,7 +78,7 @@ export default function DoctorsPage() {
               <li>1. Review the prediction before sending.</li>
               <li>2. Open WhatsApp with a prefilled message.</li>
               <li>3. Share any additional symptoms to get faster guidance.</li>
-              <li>4. If it's urgent, choose the doctor and contact immediately.</li>
+              <li>{"4. If it&apos;s urgent, choose the doctor and contact immediately."}</li>
             </ul>
           </Card>
 
