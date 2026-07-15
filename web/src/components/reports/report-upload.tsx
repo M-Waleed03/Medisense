@@ -71,7 +71,7 @@ export function ReportUpload() {
       <HoloPanel className="h-fit">
         <SignalBadge icon="pulse">OCR command deck</SignalBadge>
         <h2 className="mt-4 font-arcadiaDisplay text-heading font-light text-starlight">Medical report analyzer</h2>
-        <p className="mt-2 text-sm leading-6 text-silver">Drop a CBC-style report and MEDISENSE will route the file through Cloudinary, OCR, value extraction, and clinical insight generation.</p>
+        <p className="mt-2 text-sm leading-6 text-silver">Drop a CBC-style report and MEDISENSE will run OCR, value extraction, and clinical insight generation.</p>
         <label
           onDragOver={(event) => {
             event.preventDefault();

@@ -90,7 +90,12 @@ reportsRouter.post("/", requireAuth, upload.single("file"), async (req, res, nex
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {
+      if (error.message?.includes("invalid JWT") || error.message?.includes("expired")) {
+        return res.status(401).json({ error: "Session expired during analysis. Please upload again." });
+      }
+      throw error;
+    }
 
     const markers = ["platelets", "wbc", "rbc", "hemoglobin", "hematocrit", "mcv", "mch", "mchc", "neutrophils", "lymphocytes", "monocytes"] as const;
     await Promise.all([
@@ -119,10 +124,18 @@ reportsRouter.post("/", requireAuth, upload.single("file"), async (req, res, nex
         value: toNumber(extracted[marker]),
         payload: { report_id: data.id }
       })))
-    ]).catch((sideEffectError) => console.warn("Unable to write report side-effect records", sideEffectError));
+    ]).catch((sideEffectError) => {
+      console.warn("Unable to write report side-effect records", sideEffectError.message || sideEffectError);
+      if (sideEffectError.message?.includes("invalid JWT") || sideEffectError.message?.includes("expired")) {
+        throw new Error("Session expired while saving analysis results. Please try uploading again.");
+      }
+    });
 
     res.status(201).json({ analysis, record: data });
   } catch (error) {
+    if (error instanceof Error && (error.message.includes("Session expired") || error.message.includes("expired JWT") || error.message.includes("invalid JWT"))) {
+      return res.status(401).json({ error: error.message });
+    }
     next(error);
   }
 });

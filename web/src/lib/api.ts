@@ -158,18 +158,30 @@ export async function apiUpload<T>(path: string, file: File): Promise<T> {
   await ensureClientProfile();
   if (path !== "/reports" && path !== "/profile-image") throw new Error(`Unsupported upload path: ${path}`);
 
-  const token = await user.getIdToken();
+  // Force refresh token to ensure it's not expired (critical for long uploads)
+  const token = await user.getIdToken(true);
   const form = new FormData();
   form.append("file", file);
   form.append("kind", path === "/profile-image" ? "profile" : "report");
   form.append("userId", user.uid);
 
-  const upload = await fetch("/api/cloudinary-upload", {
-    method: "POST",
-    headers: { Authorization: `Bearer ${token}` },
-    body: form
-  });
-  if (!upload.ok) throw new Error(await responseError(upload, "Cloudinary upload failed"));
+  let upload: Response;
+  try {
+    upload = await fetch("/api/cloudinary-upload", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+      body: form
+    });
+  } catch (error) {
+    throw new Error(`Upload failed: ${error instanceof Error ? error.message : "Network error"}`);
+  }
+  
+  if (!upload.ok) {
+    if (upload.status === 401) {
+      throw new Error("Session expired. Please sign in again and retry your upload.");
+    }
+    throw new Error(await responseError(upload, path === "/reports" ? "Report upload failed" : "Cloudinary upload failed"));
+  }
   const uploaded = await upload.json();
 
   if (path === "/profile-image") {
@@ -181,22 +193,58 @@ export async function apiUpload<T>(path: string, file: File): Promise<T> {
     return uploaded as T;
   }
 
+  if (uploaded?.analysis) {
+    const result = normalizeReportAnalysis(uploaded.analysis);
+    const record = await saveReportAnalysis(user.uid, file, uploaded, result);
+    return { analysis: result, record } as T;
+  }
+
+  if (!uploaded.secureUrl) throw new Error("Upload response did not include a secure URL.");
+
   const ocr = await mlFetch<any>("/ocr-report", { fileUrl: uploaded.secureUrl, fileType: file.type, fileName: file.name });
   const extracted = ocr.extractedValues ?? ocr.extracted_data ?? {};
   const analysis = await mlFetch<any>("/analyze-report-values", { values: extracted, symptoms: [] });
-  const result = {
+  const result = normalizeReportAnalysis({
     extracted_data: extracted,
     raw_text: ocr.extractedText ?? ocr.raw_text ?? "",
     analysis: analysis.summary ?? analysis.analysis ?? "",
     flags: analysis.flags ?? [],
     riskLevel: analysis.riskLevel ?? "low",
     disclaimer: analysis.disclaimer ?? DISCLAIMER
+  });
+  const record = await saveReportAnalysis(user.uid, file, uploaded, result);
+
+  return { analysis: result, record } as T;
+}
+
+type NormalizedReportAnalysis = {
+  extracted_data: Record<string, unknown>;
+  raw_text: string;
+  analysis: string;
+  flags: unknown[];
+  riskLevel: string;
+  disclaimer: string;
+};
+
+function normalizeReportAnalysis(payload: any): NormalizedReportAnalysis {
+  const nestedAnalysis = typeof payload?.analysis === "object" && payload.analysis !== null ? payload.analysis : null;
+  return {
+    extracted_data: payload?.extracted_data ?? payload?.extractedValues ?? {},
+    raw_text: String(payload?.raw_text ?? payload?.extractedText ?? ""),
+    analysis: String(nestedAnalysis?.summary ?? nestedAnalysis?.analysis ?? payload?.analysis ?? "Report analyzed."),
+    flags: payload?.flags ?? nestedAnalysis?.flags ?? [],
+    riskLevel: String(payload?.riskLevel ?? nestedAnalysis?.riskLevel ?? "low"),
+    disclaimer: String(payload?.disclaimer ?? nestedAnalysis?.disclaimer ?? DISCLAIMER)
   };
+}
+
+async function saveReportAnalysis(userId: string, file: File, uploaded: any, result: NormalizedReportAnalysis) {
+  const extracted = result.extracted_data;
   const record = {
-    userId: user.uid,
-    fileUrl: uploaded.secureUrl,
-    publicId: uploaded.publicId,
-    fileType: file.type,
+    userId,
+    fileUrl: uploaded.secureUrl ?? null,
+    publicId: uploaded.publicId ?? null,
+    fileType: file.type || null,
     file_name: file.name,
     extractedText: result.raw_text,
     extractedValues: extracted,
@@ -213,14 +261,17 @@ export async function apiUpload<T>(path: string, file: File): Promise<T> {
     mchc: toNumber(extracted.mchc),
     neutrophils: toNumber(extracted.neutrophils),
     lymphocytes: toNumber(extracted.lymphocytes),
+    monocytes: toNumber(extracted.monocytes),
+    dengue_igg: textOrNull(extracted.dengue_igg),
+    dengue_igm: textOrNull(extracted.dengue_igm),
     diagnosis: result.analysis,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp()
   };
   const ref = await addDoc(collection(requireFirebase().db, "medical_reports"), record);
-  const markers = ["platelets", "wbc", "rbc", "hemoglobin", "hematocrit", "mcv", "mch", "mchc", "neutrophils", "lymphocytes"];
+  const markers = ["platelets", "wbc", "rbc", "hemoglobin", "hematocrit", "mcv", "mch", "mchc", "neutrophils", "lymphocytes", "monocytes"];
   await Promise.all(markers.map((marker) => addDoc(collection(requireFirebase().db, "report_values"), {
-    userId: user.uid,
+    userId,
     reportId: ref.id,
     marker,
     value: toNumber(extracted[marker]),
@@ -229,7 +280,7 @@ export async function apiUpload<T>(path: string, file: File): Promise<T> {
     updatedAt: serverTimestamp()
   })));
 
-  return { analysis: result, record: { id: ref.id, ...record } } as T;
+  return { id: ref.id, ...record };
 }
 
 async function getProfile(userId: string) {
@@ -406,6 +457,11 @@ function toNumber(value: unknown) {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
+function textOrNull(value: unknown) {
+  if (value === null || value === undefined || value === "" || value === "N/A") return null;
+  return String(value);
+}
+
 function numberOrNull(value: unknown) {
   if (value === "" || value === null || value === undefined) return null;
   const parsed = Number(value);
@@ -424,7 +480,8 @@ function markerStatus(marker: string, value: number | null) {
     mch: { low: 27, high: 33 },
     mchc: { low: 32, high: 36 },
     neutrophils: { low: 40, high: 75 },
-    lymphocytes: { low: 20, high: 45 }
+    lymphocytes: { low: 20, high: 45 },
+    monocytes: { low: 2, high: 10 }
   };
   const range = ranges[marker];
   if (!range) return "unknown";

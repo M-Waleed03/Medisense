@@ -26,7 +26,7 @@ type LocalSymptom = {
   confidence_score: number;
   risk_level: string;
   recommendations: string;
-  explanation: Record<string, unknown>;
+  explanation: Record<string, unknown> | string;
   created_at: string;
 };
 

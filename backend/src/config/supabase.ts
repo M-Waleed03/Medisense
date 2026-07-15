@@ -10,7 +10,7 @@ export const supabaseAuth = createClient(
   env.supabasePublishableKey ?? "missing-publishable-key",
   {
     auth: {
-      autoRefreshToken: false,
+      autoRefreshToken: true,
       persistSession: false
     }
   }
@@ -19,7 +19,7 @@ export const supabaseAuth = createClient(
 export const supabaseAdmin = env.hasServiceRole
   ? createClient(env.supabaseUrl!, env.SUPABASE_SERVICE_ROLE_KEY!, {
       auth: {
-        autoRefreshToken: false,
+        autoRefreshToken: true,
         persistSession: false
       }
     })
@@ -33,7 +33,7 @@ export function createUserSupabase(accessToken: string) {
       }
     },
     auth: {
-      autoRefreshToken: false,
+      autoRefreshToken: true,
       persistSession: false
     }
   });
